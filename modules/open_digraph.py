@@ -1,15 +1,16 @@
 class node:
+
     def __init__(self, identity, label, parents, children):
         '''
-identity: int; its unique id in the graph
-label: string;
-parents: int->int dict; maps a parent node's id to its multiplicity, multiplicite: nb arrête entre 2 noeuds
-children: int->int dict; maps a child node's id to its multiplicity
-'''
-        self.id= identity
-        self.label=label
-        self.parents=parents
-        self.children=children
+        identity: int; its unique id in the graph
+        label: string;
+        parents: int->int dict; maps a parent node's id to its multiplicity, multiplicite: nb arrête entre 2 noeuds
+        children: int->int dict; maps a child node's id to its multiplicity
+        '''
+        self.id = identity
+        self.label = label
+        self.parents = parents
+        self.children = children
     
     def __str__(self):
         """Affichage dans la console"""
@@ -66,15 +67,16 @@ children: int->int dict; maps a child node's id to its multiplicity
         
 
 class open_digraph:
+
     def __init__(self, inputs, outputs, nodes):
         '''
-inputs: int list; the ids of the input nodes
-outputs: int list; the ids of the output nodes
-nodes: node iter;
-'''
-        self.inputs=inputs
-        self.outputs=outputs
-        self.nodes={node.id:node for node in nodes}
+        inputs: int list; the ids of the input nodes
+        outputs: int list; the ids of the output nodes
+        nodes: node iter;
+        '''
+        self.inputs = inputs
+        self.outputs = outputs
+        self.nodes = {node.id:node for node in nodes}
     
     def __str__(self):
         "Affichage dans la console"
@@ -141,11 +143,74 @@ nodes: node iter;
         """Ajoute un nouvel id dans la liste des sorties"""
         if ID not in self.outputs:
             self.outputs.append(ID)
+
+    def new_id(self):
+        """Renvoie un id non utilisé jusquà ce moment pour un nouveau noeud"""
+        id_existant = set(self.nodes.keys())
+        new_id = 0  #je ne sais pas si c est 0 ou 1
+        
+        while new_id in id_existant:
+            new_id += 1. 
+        
+        return new_id
     
+    def add_edge(self, src, tgt):
+        """Ajoute une arête du noeud src au noeud tgt"""
+        if (src in self.nodes and tgt in self.nodes):  #faut vérifier qu'ils existent
+            self.nodes[src].add_child_id(tgt, tgt.get_id)
+            self.nodes[tgt].add_parent_id(src, src.get_id)
+        else :
+            raise ValueError ("Vous avez donné des noeuds qui n'existent pas")
+        
+    def add_edges(self, edges):
+        """Ajoute une arete entre chaqune des arretes de edges ?? je suis pas sur d'avoir compris"""
+        for src, tgt in edges:
+            self.add_edge(src, tgt)
+
+    #---------Méthodes de suppression---------------
+
+    def remove_parent_once(self, id_noeud, id_parent):
+        """Retire 1 occurence (1 multiplicité) d'un parent dans un noeud"""
+       
+        noeud = self.get_node_by_id(id_noeud) #cherche le noeud
+        noeud.get_parents()[id_parent] -= 1
+        if noeud.get_parents()[id_parent] == 0:
+            del noeud.get_parents()[id_parent] #enlève l'arête si c'est égal à 0
+   
+    def remove_child_once(self, id_noeud, id_children):
+        """Retire 1 occurence (1 multiplicité) d'un enfant dans un noeud"""
+
+        noeud = self.get_node_by_id(id_noeud)#cherche le noeud
+        noeud.get_children()[id_children] -= 1
+        if noeud.get_children()[id_children] == 0:
+            del noeud.get_children()[id_children] #enlève l'arête si c'est égal à 0
+   
+    def remove_parent_id(self, id_noeud, id_parent):
+        """Retire toutes les occurences d'un parent dans un noeud"""
+        noeud = self.get_node_by_id(id_noeud) #cherche le noeud
+        del noeud.get_parents()[id_parent]
+
+    def remove_child_id(self, id_noeud, id_children):
+        """Retire toutes les occurences d'un enfant dans un noeud"""
+        noeud = self.get_node_by_id(id_noeud)
+        del noeud.get_children(id_children)  
+   
+    def remove_edge(self, src, tgt):
+        """Retire 1 multiplicté de l'arête qui va de l'id src vers l'id tgt"""
+        self.remove_parent_once(tgt, src)#enlève dans l'instance de chacun des deux noeuds
+        self.remove_child_once(src, tgt)
+   
+    def remove_parallel_edges(self, src, tgt):
+        self.remove_parent_id(tgt,src) #enlève dans l'instance de chacun des deux noeuds
+        self.remove_child_id(src,tgt)
     
         
     
         
 
     
+
+    
+
+
 
