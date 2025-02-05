@@ -57,6 +57,79 @@ class InitTest(unittest.TestCase):
         G_copy.nodes[0].label = "X"
         self.assertNotEqual(G_copy.nodes[0].label, G.nodes[0].label)
         
+        #-------------Tests méthodes de suppression-------------
+        
+        n0 = node(0, 'A', {}, {1: 2, 2: 1})  # 2 arêtes vers 1, 1 arête vers 2
+        n1 = node(1, 'B', {0: 2}, {2: 1})  # 2 arêtes venant de 0, 1 arête vers 2
+        n2 = node(2, 'C', {0: 1, 1: 1}, {})  # 1 arête venant de 0, 1 arête venant de 1
+        
+        G = open_digraph([0], [2], [n0, n1, n2])
+        
+        # Vérification initiale
+        assert G.get_node_by_id(0).get_children() == {1: 2, 2: 1}
+        assert G.get_node_by_id(1).get_parents() == {0: 2}
+        assert G.get_node_by_id(1).get_children() == {2: 1}
+        assert G.get_node_by_id(2).get_parents() == {0: 1, 1: 1}
+        
+        # Test de remove_edge (supprime une occurrence)
+        G.remove_edge(0, 1)
+        assert G.get_node_by_id(0).get_children() == {1: 1, 2: 1}  # 1 arête restante vers 1
+        assert G.get_node_by_id(1).get_parents() == {0: 1}  # 1 arête restante de 0
+        
+        # Test de remove_parallel_edges (supprime toutes les occurrences)
+        G.remove_parallel_edges(0, 1)
+        assert G.get_node_by_id(0).get_children() == {2: 1}  # Plus d’arête vers 1
+        assert 1 not in G.get_node_by_id(1).get_parents()  # 1 n'a plus 0 comme parent
+        
+        # Test de remove_node_by_id (supprime les arêtes associées au nœud)
+        G.remove_node_by_id(1)
+        assert G.get_node_by_id(0).get_children() == {2: 1}  # Plus d’arête vers 1
+        assert 1 not in G.get_node_by_id(2).get_parents()  # Plus de lien depuis 1
+        assert 1 in G.get_id_node_map()  # Le nœud 1 existe toujours
+        
+        # Test de remove_edges (supprime plusieurs arêtes individuelles)
+        G.add_edge(0, 1)  # Ajout d'une nouvelle arête pour tester
+        G.add_edge(1, 2)  # Ajout d'une nouvelle arête pour tester
+        G.remove_edges((0, 1), (1, 2))
+        assert G.get_node_by_id(0).get_children() == {2: 1}  # L'arête vers 1 supprimée
+        assert G.get_node_by_id(1).get_children() == {}  # Plus d'arête vers 2
+        
+        # Test de remove_several_parallel_edges (supprime toutes les occurrences des arêtes)
+        G.add_edge(0, 1)
+        G.add_edge(0, 1)
+        G.remove_several_parallel_edges((0, 1))
+        assert 1 not in G.get_node_by_id(0).get_children()  # Plus d’arête vers 1
+   
+        
+        # Test de remove_nodes_by_id (supprime les arêtes associées aux nœuds)
+        G.add_edge(0, 1)
+        G.add_edge(2, 1)
+        G.remove_nodes_by_id(0, 2)
+        assert 0 in G.get_id_node_map()  # Le nœud 0 existe toujours
+        assert 2 in G.get_id_node_map()  # Le nœud 2 existe toujours
+        assert G.get_node_by_id(0).get_children() == {}  # Plus d'arête sortante de 0
+        assert G.get_node_by_id(2).get_parents() == {}  # Plus d'arête entrante vers 2
+        
+        #------------------------Tests pour add_input_node et add_output_node-------------
+        n0 = node(0, 'A', {}, {1: 1})  # Pointe vers 1
+        n1 = node(1, 'B', {0: 1}, {})  # Vient de 0
+        G = open_digraph([0], [1], [n0, n1])
+        
+        # Test de add_input_node
+        new_input_id = G.add_input_node(0)
+        assert new_input_id in G.get_id_node_map()
+        assert new_input_id in G.get_input_ids()
+        assert G.get_node_by_id(new_input_id).get_children() == {0: 1}
+        assert 0 in G.get_node_by_id(0).get_parents()
+        
+        # Test de add_output_node
+        new_output_id = G.add_output_node(1)
+        assert new_output_id in G.get_id_node_map()
+        assert new_output_id in G.get_output_ids()
+        assert G.get_node_by_id(new_output_id).get_parents() == {1: 1}
+        assert 1 in G.get_node_by_id(1).get_children()
+                
+
 if __name__ == '__main__':
     unittest.main()
 

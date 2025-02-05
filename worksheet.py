@@ -10,3 +10,5 @@ print(f"\n Documentation de node.copy : \n {inspect.getdoc(node.copy)}\n")
 print(f"Lignes de code de node.copy : \n {inspect.getsourcelines(node.copy)}\n")
 print(f"Fichier ou se trouve node.copy : \n {inspect.getfile(node.copy)}\n")
 """
+
+
