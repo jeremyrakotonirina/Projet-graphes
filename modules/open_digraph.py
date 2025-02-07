@@ -75,6 +75,8 @@ class open_digraph:
         self.outputs = outputs
         self.nodes = {node.id:node for node in nodes}
     
+    #----------Méthodes d'affichage-----------------
+    
     def __str__(self):
         "Affichage dans la console"
         nodes_str = "\n  ".join(str(node) for node in self.nodes.values()) #affichage des noeuds
@@ -83,6 +85,8 @@ class open_digraph:
     def __repr__(self):
         """Affichage inductive du graphe"""
         return f"open_digraph({self.inputs}, {self.outputs}, {list(self.nodes.values())})"
+    
+    #--------------------------------------------------
     
     @classmethod
     def empty(cls):
@@ -95,7 +99,7 @@ class open_digraph:
             [noeud.copy() for noeud in self.nodes.values()] 
         )
     
-    #-------------Getters---------------------------
+     #-------------Getters---------------------------
     def get_input_ids(self):
         return self.inputs
     
@@ -145,26 +149,33 @@ class open_digraph:
     
     def new_id(self):
         """Renvoie un id non utilisé jusquà ce moment pour un nouveau noeud"""
-        id_existant = set(self.nodes.keys())
-        new_id = 0  #je ne sais pas si c est 0 ou 1
-        
-        while new_id in id_existant:
-            new_id += 1. 
-        
+        new_id = 0 
+        while new_id in self.get_id_node_map():
+            new_id += 1 
         return new_id
     
     def add_edge(self, src, tgt):
         """Ajoute une arête du noeud src au noeud tgt"""
-        if (src in self.nodes and tgt in self.nodes):  #faut vérifier qu'ils existent
-            self.nodes[src].add_child_id(tgt, tgt.get_id())
-            self.nodes[tgt].add_parent_id(src, src.get_id())
+        if (src in self.get_id_node_map() and tgt in self.get_id_node_map()):  #vérifier qu'ils existent
+            self.nodes[src].add_child_id(tgt, 1)
+            self.nodes[tgt].add_parent_id(src, 1)
         else :
             raise ValueError ("Vous avez donné des noeuds qui n'existent pas")
         
     def add_edges(self, edges):
-        """Ajoute une arete entre chaqune des arretes de edges ?? je suis pas sur d'avoir compris"""
+        """edges prend une liste de paires d'ids de noeuds, et la méthode rajoute une arête entre chacune de ces paires"""
         for src, tgt in edges:
             self.add_edge(src, tgt)
+    
+    def add_node(self, label='', parents=None, children=None):
+        """rajoute un noeud au graphe"""
+        nouveau_id= self.new_id()
+        if parents==None:
+            parents={}
+        if children==None:
+            children={}
+        self.get_id_node_map[nouveau_id]= node(nouveau_id, label, {parents:})
+
     
     def add_input_node(self, tgt):
         """Ajoute un nouveau noeud d'entrée qui pointe vers tgt"""
@@ -178,7 +189,7 @@ class open_digraph:
         self.nodes[tgt].add_parent_id(new_id, 1)  # ajout du nouveau parent de tgt
         self.add_input_id(new_id)  # Ajout à la liste des entrées
         
-        #return new_id juste pour les tests
+        return new_id 
     
     def add_output_node(self, tgt):
         """Ajoute un nouveau noeud de sortie qui pointe vers tgt"""
@@ -192,7 +203,7 @@ class open_digraph:
         self.nodes[tgt].add_child_id(new_id, 1)  # ajout du nouvel enfant de tgt
         self.add_output_id(new_id)  # Ajout à la liste des sorties
         
-        #return new_id juste pour les tests
+        return new_id 
     
 
     #---------Méthodes de suppression---------------
@@ -261,6 +272,47 @@ class open_digraph:
         """Retire toutes les arêtes associées à un noeud"""
         for id_noeud in args:
             self.remove_node_by_id(id_noeud)
+    
+    #----------------------------------
+
+    def is_well_formed(self):
+        """Vérifie qu'un graphe est toujours bien formé"""
+        for noeud in self.get_input_ids()+self.get_output_ids(): #chaque noeud d'input et output doit être dans le graphe
+            if noeud.get_id() not in self.get_id_node_map():
+                return false
+        
+        for noeud in self.get_input_ids():
+            if len(noeud.get_children()) != 1 or len(noeud.get_parents()) != 0: #vérifie que les noeuds d'entrée ont un unique enfant et aucun parent
+                return false
+            for cle in noeud.get_children(): #vérifie que l'unique enfant est de multiplicité 1
+                if noeud.get_children()[cle] != 1:
+                    return false
+        
+        for noeud in self.get_output_ids():
+            if len(noeud.get_parents()) != 1 or len(noeud.get_children()) != 0: #vérifie que les noeuds de sortie ont un unique parent et aucun enfant
+                return false
+            for cle in noeud.get_parents(): #vérifie que l'unique parent est de multiplicité 1
+                if noeud.get_parents()[cle] != 1:
+                    return false
+        
+        for noeud_id in noeud.get_id_node_map(): #chaque clé de nodes pointe vers un noeud d'id la clé
+            noeud=noeud.get_id_node_map()[noeud_id]
+            if noeud.get_id() != noeud_id : 
+                return false
+        
+        for noeud_id in self.get_id_node_map():
+            noeud=noeud.get_id_node_map()[noeud_id]
+            for fils in noeud.get_children():
+                multiplicite=noeud.get_children()[fils]
+
+
+        
+
+
+        
+            
+
+        
             
     
     
