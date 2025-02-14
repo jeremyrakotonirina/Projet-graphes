@@ -1,3 +1,5 @@
+import random
+
 class node:
 
     def __init__(self, identity, label, parents, children):
@@ -155,7 +157,7 @@ class open_digraph:
         return new_id
     
     def add_edge(self, src, tgt):
-        """Ajoute une arête du noeud src au noeud tgt"""
+        """Ajoute une arête du noeud src au noeud tgt, prend les id des noeuds en paramètre"""
         if (src in self.get_id_node_map() and tgt in self.get_id_node_map()):  #vérifier qu'ils existent
             self.nodes[src].add_child_id(tgt, 1)
             self.nodes[tgt].add_parent_id(src, 1)
@@ -167,14 +169,15 @@ class open_digraph:
         for src, tgt in edges:
             self.add_edge(src, tgt)
     
-    def add_node(self, label='', parents=None, children=None):
-        """rajoute un noeud au graphe"""
+    """def add_node(self, label='', parents=None, children=None):
+        rajoute un noeud au graphe
         nouveau_id= self.new_id()
         if parents==None:
             parents={}
         if children==None:
             children={}
         self.get_id_node_map[nouveau_id]= node(nouveau_id, label, {parents:})
+        """
 
     
     def add_input_node(self, tgt):
@@ -279,48 +282,173 @@ class open_digraph:
         """Vérifie qu'un graphe est toujours bien formé"""
         for noeud in self.get_input_ids()+self.get_output_ids(): #chaque noeud d'input et output doit être dans le graphe
             if noeud.get_id() not in self.get_id_node_map():
-                return false
+                return False
         
         for noeud in self.get_input_ids():
             if len(noeud.get_children()) != 1 or len(noeud.get_parents()) != 0: #vérifie que les noeuds d'entrée ont un unique enfant et aucun parent
-                return false
+                return False
             for cle in noeud.get_children(): #vérifie que l'unique enfant est de multiplicité 1
                 if noeud.get_children()[cle] != 1:
-                    return false
+                    return False
         
         for noeud in self.get_output_ids():
             if len(noeud.get_parents()) != 1 or len(noeud.get_children()) != 0: #vérifie que les noeuds de sortie ont un unique parent et aucun enfant
-                return false
+                return False
             for cle in noeud.get_parents(): #vérifie que l'unique parent est de multiplicité 1
                 if noeud.get_parents()[cle] != 1:
-                    return false
+                    return False
         
         for noeud_id in noeud.get_id_node_map(): #chaque clé de nodes pointe vers un noeud d'id la clé
             noeud=noeud.get_id_node_map()[noeud_id]
             if noeud.get_id() != noeud_id : 
-                return false
+                return False
         
         for noeud_id in self.get_id_node_map():
             noeud=noeud.get_id_node_map()[noeud_id]
             for fils in noeud.get_children():
                 multiplicite=noeud.get_children()[fils]
-
-
+                
+    @classmethod    # ça sert a quoi cette ligne de code ?
+    def random(self, n, bound, inputs = 0, outputs = 0, form = "free"):   # a tester
+        """ génère un graphe formé de n noeuds ou le nb d'arretes est aleatoire avec des valeurs entre 0 et bound inclus, on peut décider le graphe que l'on veut avec le parametre form
+            valeurs possibles pour form :   free       -- 
+                                            DAG        --  
+                                            oriented   -- 
+                                            undirected -- 
+                                            loop-free  --   
+        """
+        if form == "free":
+            return graph_from_adjacency_matrix(random_int_matrix(n, bound, False))
+        elif form == "DAG":
+            return graph_from_adjacency_matrix(random_triangular_int_matrix(n, bound, False))
+        elif form == "oriented":
+            return graph_from_adjacency_matrix(random_oriented_int_matrix(n, bound, False))
+        elif form == "undirected":
+            return graph_from_adjacency_matrix(random_symetric_int_matrix(n, bound, False))
+        elif form == "loop-free":
+            return graph_from_adjacency_matrix(random_int_matrix(n, bound, True))
+        elif form == "loop-free DAG":
+            return graph_from_adjacency_matrix(random_triangular_int_matrix(n, bound, True))
+        elif form == "loop-free oriented":
+            return graph_from_adjacency_matrix(random_oriented_int_matrix(n, bound, True))
+        elif form == "loop-free undirected":
+            return graph_from_adjacency_matrix(random_symetric_int_matrix(n, bound, True))
+        else:
+            raise ValueError(" Le paramètre form est mal donné, regarder la documentation pour plus d'info sur le paramètre ")
+        
         
 
 
-        
-            
+    """  A retraivailler, pas clair"""
 
-        
-            
+    def association_ID(self):    # je sais pas a quoi elle sert la fonction on me la demandait dans le tp3
+        dic = {}
+        i = 0
+        for id in self.get_id_node_map().keys():
+            dic[id] = i
+            i = i + 1
+        return dic
     
-    
-    
-        
-    
-        
+    def adjacency_matrix(self):  #on soit la logique selon laquelle id du noeud = 0,1,2,3,4,5,etc. et que les noeuds sont gardés en ordre? car c'est un dictionnaire?
+        """ renvoi la matrice d'adjacence du graphe, on ignore inputs et outputs """
+        tab = []
+        for id,noeud in self.get_id_node_map().items():
+            petit_tab = [0] * len(id)   # on place dans la matrice les enfants
+            for i in noeud.get_children().keys():                   # relation directe entre id et place dans le tableau
+                petit_tab[i] += 1 
+            tab.append(petit_tab)
+        return tab
 
+    """    """
+
+
+
+
+
+
+def random_int_list(n, bound):
+    """ renvoi une liste de taille n contenant des chiffres générés aléatoirement entre 0 et bound inclus """
+    [random.randrange(0, bound+1) for i in range(n)]
+
+def random_int_matrix(n, bound, null_diag = True):
+    """ renvoi une matrice de taille n*n qui a comme éléments des int tirés aléatoirement entre 0 et bound inclus et si null_diag = True alors la diagonale sera nulle"""
+    return [[0 if i == j and null_diag else random.randrange(0, bound+1) for j in range(n)] for i in range(n)]
+
+def random_symetric_int_matrix(n, bound, null_diag = True):
+    """ renvoi une matrice symetrique de taille n*n qui a comme éléments des int tirés aléatoirement entre 0 et bound inclus et si null_diag = True alors la diagonale sera nulle """
+    tab = [n * [0] for i in range(n)]
+    for i in range(n):
+        for j in range(i,n):   # on remplit juste la partie en haut a droite de la matrice et on copie les valeurs dans tab[j][i]
+            if i == j and null_diag:
+                tab[i][j] = 0
+            else:
+                val = random.randrange(0, bound+1)
+                tab[i][j] = val
+                tab[j][i] = val
+    return tab
+
+def est_symetrique(tab, n):
+    """ renvoi si le tableau double passé en paramètres est symetrique (n est la longueur du tableau)"""
+    for i in range(n):
+        for j in range(n):
+            if(tab[i][j] != tab[j][i]):
+                return False
+    return True
+
+def random_oriented_int_matrix(n, bound, null_diag = True):
+    """ renvoi une matrice de taille n*n remplie avec des chiffres aléatoires entre 0 et bound inclus telle si A[i][j] != 0 alors A[j][i] == 0 et la fonction dispose du param null_diag """
+    tab = [n * [0] for i in range(n)]
+    for i in range(n):
+        for j in range(n):
+            if (i == j and null_diag) or tab[j][i] != 0:   # tab[j][i] != 0 veut dire que il y a deja des arretes qui vont dans un sens entre les noeuds donc si c'est le cas il faut pas rajoutter plus d'arretes
+                tab[i][j] = 0
+            else:
+                if random.random() < 0.5:    #est ce que c'est bon? parcque on augmente les chances que tab[i][j] == 0 ??             # on remplit la valeur avec une chance de 50% comme ça on evite que toutes les valeurs en haut à gauche aient des valeurs et pas les autres 
+                    tab[i][j] = random.randrange(0, bound+1)
+    return tab
+
+# attention, dans le tp ils disent que graphe oriente implique que si un noeud pointe vers un autre alors l'autre ne peut pas pointer vers celui ci, c'est la bonne def de oriente??
+def est_oriente(tab, n):
+    """ renvoi si le tableau double passé en paramètres est orienté (n est la longueur du tableau)"""
+    for i in range(n):
+        for j in range(n):
+            if(i != j and tab[i][j] == tab[j][i] and tab[i][j] != 0):
+                return False
+    return True
+
+def random_triangular_int_matrix(n, bound, null_diag = True):
+    """ renvoi une matrice triangulaire supérieure de taille n*n remplie avec des chiffres aléatoires entre 0 et bound inclu et la fonction dispose du param null_diag """
+    tab = [n * [0] for i in range(n)]
+    for i in range(n):
+        for j in range(i,n):   # on remplit juste la partie en haut a droite de la matrice
+            if i == j and null_diag:
+                tab[i][j] = 0
+            else:
+                tab[i][j] = random.randrange(0, bound+1)
+    return tab
+
+def est_triangulaire_sup(tab, n):
+    """ renvoi si le tableau double passé en paramètres est triangulaire sup (n est la longueur du tableau)"""
+    for i in range(n):
+        for j in range(i):
+            if tab[i][j] != 0:
+                return False
+    return True
+
+def graph_from_adjacency_matrix(matrice): # a tester
+    """ renvoi le multigraph represente par la matrice donnee en parametres, on laisse les attributs input et output vides"""
+    G = open_digraph([], [], [])
+    for i in range(len(matrice)):
+        G.add_node(node(i, str(i), [], []))    # ne marche que si new_id donne les id 0,1,2,3,4 en ordre sinon la suite n'a pas de sens #label = id??
+    for i in range(len(matrice)):
+        for j in range(len(matrice[1])):
+            while matrice[i][j] != 0:         # on fait un while car il peu y avoir plusieurs arretes a placer
+                G.add_edge(i, j)
+    return G
+
+
+
+    
     
 
     
