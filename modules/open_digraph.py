@@ -1,5 +1,5 @@
 import random
-import os #pour le display du noeud
+
 class node:
 
     def __init__(self, identity, label, parents, children):
@@ -418,10 +418,11 @@ class open_digraph:
         with open(path, "w") as file:
             file.write("digraph G {\n")
             for node in self.nodes.values():
-                file.write(f'\t{node.get_id()} [label="{node.get_label()}"{f", xlabel={node.get_id()}"*verbose}];\n')
+                file.write(f'\tv{node.get_id()} [label="{node.get_label()}"{f", xlabel={node.get_id()}"*verbose}];\n')
             for node in self.nodes.values():
-                for parent in node.get_parents():
-                    file.write(f"\t{parent} -> {node.get_id()} ;\n")
+                for parent,multiplicite in node.get_parents().items():
+                    for i in range(multiplicite):
+                        file.write(f"\tv{parent} -> v{node.get_id()} [label={i+1} color={["red", "blue", "green"][i % 3]} minlen={i+1} constraint=false];\n") #afin de differencier les arretes on leur atribue un label et une couleur dependant de la multiplicite
             file.write("}")
         
     @classmethod
@@ -429,22 +430,32 @@ class open_digraph:
         graph = cls.empty()
         dic = {}
         with open(path, "r") as file:
-            lines = file.readlines()
-        for line in lines[1:-1]:
-            words = line.split()
+            lines = lignes_sans_v = [ligne.replace("v", "").strip() for ligne in file]  #on suprimme les v du fichier pour faciliter le code
+        i = 1
+        while i < len(lines)-1:
+            words = lines[i].split()
             if words[1] != "->":
-                n = node(int(words[0]), words[1].split('"')[1])
+                n = node(int(words[0]), words[1].split('"')[1],{},{})
                 dic[int(words[0])] = n
+                i += 1
             else:
-                dic[int(words[0])].add_child_id(int(words[2]), 1)
-                dic[int(words[2])].add_parent_id(int(words[0]), 1)
+                multiplicite = 1
+                words_S = lines[i+1].split()
+                while(i + 1 < len(lines) and lines[i + 1].split()[0] == words[0] and lines[i + 1].split()[2] == words[2]):
+                    multiplicite += 1
+                    i += 1
+                dic[int(words[0])].add_child_id(int(words[2]), multiplicite)
+                dic[int(words[2])].add_parent_id(int(words[0]), multiplicite)
+                i += 1
         graph.nodes = {v.get_id(): v for v in dic.values()}
-        graph.inputs = [node.get_id() for node in graph.nodes.values() if node.is_input]
-        graph.outputs = [node.get_id() for node in graph.nodes.values() if node.is_output]
+        # faut coder la partie du input et output
+        #graph.inputs = 
+        #graph.outputs = 
         return graph
 
     
     def display(self, verbose=False):
+        import os #pour le display du noeud
         self.save_as_dot_file("temp.dot",verbose)
         process = f"dot -Tpng temp.dot -o temp.png && open temp.png"
         os.system(process)
