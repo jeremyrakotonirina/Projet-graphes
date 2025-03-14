@@ -1,4 +1,5 @@
 import random
+import os #pour le display du noeud
 class node:
 
     def __init__(self, identity, label, parents, children):
@@ -412,6 +413,41 @@ class open_digraph:
      
         return matrice
         """
+
+    def save_as_dot_file(self, path:str, verbose=False):
+        with open(path, "w") as file:
+            file.write("digraph G {\n")
+            for node in self.nodes.values():
+                file.write(f'\t{node.get_id()} [label="{node.get_label()}"{f", xlabel={node.get_id()}"*verbose}];\n')
+            for node in self.nodes.values():
+                for parent in node.get_parents():
+                    file.write(f"\t{parent} -> {node.get_id()} ;\n")
+            file.write("}")
+        
+    @classmethod
+    def from_dot_file(cls, path:str):
+        graph = cls.empty()
+        dic = {}
+        with open(path, "r") as file:
+            lines = file.readlines()
+        for line in lines[1:-1]:
+            words = line.split()
+            if words[1] != "->":
+                n = node(int(words[0]), words[1].split('"')[1])
+                dic[int(words[0])] = n
+            else:
+                dic[int(words[0])].add_child_id(int(words[2]), 1)
+                dic[int(words[2])].add_parent_id(int(words[0]), 1)
+        graph.nodes = {v.get_id(): v for v in dic.values()}
+        graph.inputs = [node.get_id() for node in graph.nodes.values() if node.is_input]
+        graph.outputs = [node.get_id() for node in graph.nodes.values() if node.is_output]
+        return graph
+
+    
+    def display(self, verbose=False):
+        self.save_as_dot_file("temp.dot",verbose)
+        process = f"dot -Tpng temp.dot -o temp.png && open temp.png"
+        os.system(process)
 
 
 #---------------Matrices------------------------------------------
