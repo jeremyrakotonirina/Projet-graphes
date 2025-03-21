@@ -1,5 +1,17 @@
 import random
 
+import matplotlib.colors as mcolors
+
+# Liste de toutes les couleurs X11 depuis matplotlib
+x11_colors = list(mcolors.CSS4_COLORS.keys())
+x11_colors_taille = len(x11_colors)
+
+#liste couleures spécifiques
+couleurs_specifiques = [
+    "red", "blue", "green","orange", "purple", "brown", "gray", "white","yellow", "cyan", "magenta",
+]
+couleurs_specifiques_taille = len(couleurs_specifiques)
+
 class node:
 
     def __init__(self, identity, label, parents, children):
@@ -418,11 +430,21 @@ class open_digraph:
         with open(path, "w") as file:
             file.write("digraph G {\n")
             for node in self.nodes.values():
-                file.write(f'\tv{node.get_id()} [label="{node.get_label()}"{f", xlabel={node.get_id()}"*verbose}];\n')
+                if(verbose):
+                    file.write(f'\t{node.get_id()} [label="{node.get_label()}, {node.get_id()}"];\n')
+                else:
+                    file.write(f'\t{node.get_id()};\n')
+            index_couleur = 0
             for node in self.nodes.values():
-                for parent,multiplicite in node.get_parents().items():
+                col = couleurs_specifiques[index_couleur]
+                for children,multiplicite in node.get_children().items():
+                    
                     for i in range(multiplicite):
-                        file.write(f"\tv{parent} -> v{node.get_id()} [label={i+1} color={["red", "blue", "green"][i % 3]} minlen={i+1} constraint=false];\n") #afin de differencier les arretes on leur atribue un label et une couleur dependant de la multiplicite
+                        #col = ["red", "blue", "green", "aqua", "brown", "darkmagenta"][i % 3]
+                        #col = x11_colors[i%x11_colors_taille]
+                        
+                        file.write(f"\t{node.get_id()} -> {children} [color={col} minlen={i+1}];\n") #afin de differencier les arretes on leur atribue un label et une couleur dependant de la multiplicite
+                index_couleur +=1
             file.write("}")
         
     @classmethod
