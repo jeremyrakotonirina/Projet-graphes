@@ -424,7 +424,7 @@ class open_digraph:
                 matrice[index][id_map[child_id]] = multiplicity  # Remplit avec les multiplicités d'arêtes
      
         return matrice
-        """
+        """ 
 
     def save_as_dot_file(self, path:str, verbose=False):
         with open(path, "w") as file:
@@ -438,21 +438,41 @@ class open_digraph:
             for node in self.nodes.values():
                 col = couleurs_specifiques[index_couleur]
                 for children,multiplicite in node.get_children().items():
-                    
                     for i in range(multiplicite):
                         #col = ["red", "blue", "green", "aqua", "brown", "darkmagenta"][i % 3]
                         #col = x11_colors[i%x11_colors_taille]
-                        
-                        file.write(f"\t{node.get_id()} -> {children} [color={col} minlen={i+1}];\n") #afin de differencier les arretes on leur atribue un label et une couleur dependant de la multiplicite
+                        file.write(f"\t{node.get_id()} -> {children} [color={col} minlen={i+1}];\n") #afin de differencier les arretes on leur atribue une couleur dependant de leur parent
                 index_couleur +=1
             file.write("}")
         
     @classmethod
-    def from_dot_file(cls, path:str):
-        graph = cls.empty()
+    def from_dot_file(self, path:str):
+        graph = self.empty()
         dic = {}
         with open(path, "r") as file:
-            lines = lignes_sans_v = [ligne.replace("v", "").strip() for ligne in file]  #on suprimme les v du fichier pour faciliter le code
+            lines = lignes_sans_v = [ligne.strip() for ligne in file]  #recupère toutes les lignes
+        for i in range(1,len(lines)-1):
+            words = lines[i].split()
+            if len(words) == 1:
+                n = node(int(words[0]), "",{},{})
+                dic[int(words[0])] = n
+            elif words[1] != "->":
+                n = node(int(words[0]), "label",{},{})
+                dic[int(words[0])] = n
+            else:
+                multiplicite = 1
+                words_S = lines[i+1].split()
+                #while(i + 1 < len(lines) and lines[i + 1].split()[0] == words[0] and lines[i + 1].split()[2] == words[2]):
+                #while(words_S[0] == words[0] and words_S[2] == words[2]):
+                while(i + 1 < len(lines) and lines[i+1].split()[0] == words[0] and lines[i+1].split()[2] == words[2]):
+                    multiplicite += 1
+                    words_S = lines[i+1].split()
+                    i += 1
+                print(multiplicite)
+                dic[int(words[0])].add_child_id(int(words[2]), multiplicite)
+                dic[int(words[2])].add_parent_id(int(words[0]), multiplicite)
+                
+        """
         i = 1
         while i < len(lines)-1:
             words = lines[i].split()
@@ -469,7 +489,8 @@ class open_digraph:
                 dic[int(words[0])].add_child_id(int(words[2]), multiplicite)
                 dic[int(words[2])].add_parent_id(int(words[0]), multiplicite)
                 i += 1
-        graph.nodes = {v.get_id(): v for v in dic.values()}
+        """
+        graph.nodes = dic
         # faut coder la partie du input et output
         #graph.inputs = 
         #graph.outputs = 
