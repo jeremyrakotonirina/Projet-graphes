@@ -451,7 +451,11 @@ class open_digraph:
         dic = {}
         with open(path, "r") as file:
             lines = lignes_sans_v = [ligne.strip() for ligne in file]  #recupère toutes les lignes
-        for i in range(1,len(lines)-1):
+        i = 1
+        fin = len(lines)-1
+        print(fin)
+        while i < fin:
+            print("i=",i)
             words = lines[i].split()
             if len(words) == 1:
                 n = node(int(words[0].strip(';')), "", {}, {})
@@ -468,9 +472,12 @@ class open_digraph:
                     multiplicite += 1
                     words_S = lines[i+1].split()
                     i += 1
-                dic[int(words[0].strip(';'))].add_child_id(int(words[2].strip(';')), multiplicite)
-                dic[int(words[2].strip(';'))].add_parent_id(int(words[0].strip(';')), multiplicite)
-                
+                for i in range(multiplicite):
+                    print(multiplicite)
+                    dic[int(words[0].strip(';'))].add_child_id(int(words[2].strip(';')), multiplicite)
+                    print(dic[int(words[0].strip(';'))])
+                    dic[int(words[2].strip(';'))].add_parent_id(int(words[0].strip(';')), multiplicite)
+            i+=1
         """
         i = 1
         while i < len(lines)-1:
@@ -490,11 +497,12 @@ class open_digraph:
                 i += 1
         """
         graph.nodes = dic
-        for n in dic.values():
+        print(dic)
+        """for n in dic.values():
             for p in n.get_parents().keys():
                 graph.add_edge(n.get_id(), p)
             for c in n.get_children().keys():
-                graph.add_edge(n.get_id(), c)
+                graph.add_edge(n.get_id(), c)"""
         # faut coder la partie du input et output
         #graph.inputs = 
         #graph.outputs = 
