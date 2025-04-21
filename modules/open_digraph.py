@@ -460,6 +460,43 @@ class open_digraph:
         self.save_as_dot_file("temp.dot",verbose)
         process = f"dot -Tpng temp.dot -o temp.png && open temp.png" #remplacer open par start sur windows
         os.system(process)
+    
+    def dijkstra(self, src, direction=None):
+        """
+        Implémentation conforme à l'algorithme du TD :
+        - src : identifiant du nœud source
+        - direction : None (non orienté), 1 (enfants), -1 (parents)
+        Retourne : distances, prev
+        """
+        Q = [src]
+        dist = {src: 0}
+        prev = {}
+
+        while Q:
+            # Trouver le nœud avec la distance minimale
+            u = min(Q, key=lambda node_id: dist[node_id])
+            Q.remove(u)
+
+            u_node = self.get_node_by_id(u)
+
+            # Détermination des voisins selon la direction
+            if direction is None:
+                neighbours = list(u_node.get_children().keys()) + list(u_node.get_parents().keys())
+            elif direction == 1:
+                neighbours = list(u_node.get_children().keys())
+            elif direction == -1:
+                neighbours = list(u_node.get_parents().keys())
+            else:
+                raise ValueError("direction doit être None, 1 ou -1")
+
+            for v in neighbours:
+                if v not in dist:
+                    Q.append(v)
+                if v not in dist or dist[v] > dist[u] + 1:
+                    dist[v] = dist[u] + 1
+                    prev[v] = u
+
+        return dist, prev
 
 
 def graph_from_adjacency_matrix(matrice):
