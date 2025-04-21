@@ -162,6 +162,81 @@ class MethodesDigraphTest(unittest.TestCase):
        
             G.add_output_node(1)
             G.is_well_formed()
+        
+        print('----------------------------test de methode dikstra--------------------------------')
+        def test_djikstra(self):
+            
+            a = node(0, 'A', {}, {1: 1, 2: 1})
+            b = node(1, 'B', {0: 1}, {3: 1})
+            c = node(2, 'C', {0: 1}, {3: 1})
+            d = node(3, 'D', {1: 1, 2: 1}, {})
+            e = node(4, 'E', {}, {})  # isolé
+            G = open_digraph([0], [3], [a, b, c, d, e])
+
+            dist, prev = G.dijkstra(0, direction=1)
+
+            self.assertEqual(dist[0], 0)
+            self.assertEqual(dist[1], 1)
+            self.assertEqual(dist[2], 1)
+            self.assertEqual(dist[3], 2)
+            self.assertNotIn(4, dist)
+
+            self.assertEqual(prev[1], 0)
+            self.assertEqual(prev[2], 0)
+            self.assertIn(prev[3], [1, 2])
+
+            dist_undirected, _ = G.dijkstra(3, direction=None)
+            self.assertEqual(dist_undirected[0], 2)
+            self.assertNotIn(4, dist_undirected)
+
+        def test_dijkstra_isolated_source(self):
+            a = node(0, 'A', {}, {})
+            b = node(1, 'B', {}, {})
+            G = open_digraph([0], [1], [a, b])
+            dist, prev = G.dijkstra(0, direction=1)
+            self.assertEqual(dist, {0: 0})
+            self.assertEqual(prev, {})
+
+        def test_dijkstra_self_loop(self):
+            a = node(0, 'A', {0: 1}, {0: 1})
+            G = open_digraph([0], [0], [a])
+            dist, prev = G.dijkstra(0, direction=1)
+            self.assertEqual(dist, {0: 0})
+            self.assertEqual(prev, {})
+
+        def test_dijkstra_multiple_paths(self):
+            a = node(0, 'A', {}, {1: 1, 2: 1})
+            b = node(1, 'B', {0: 1}, {3: 1})
+            c = node(2, 'C', {0: 1}, {})
+            d = node(3, 'D', {1: 1}, {})
+            G = open_digraph([0], [3], [a, b, c, d])
+            dist, prev = G.dijkstra(0, direction=1)
+            self.assertEqual(dist[3], 2)
+            self.assertEqual(prev[3], 1)
+
+        def test_dijkstra_disconnected(self):
+            a = node(0, 'A', {}, {1: 1})
+            b = node(1, 'B', {0: 1}, {})
+            c = node(2, 'C', {}, {})
+            G = open_digraph([0], [1], [a, b, c])
+            dist, prev = G.dijkstra(0, direction=1)
+            self.assertIn(0, dist)
+            self.assertIn(1, dist)
+            self.assertNotIn(2, dist)
+
+        def test_dijkstra_reverse_direction(self):
+            a = node(0, 'A', {1: 1}, {})
+            b = node(1, 'B', {2: 1}, {0: 1})
+            c = node(2, 'C', {}, {1: 1})
+            G = open_digraph([2], [0], [a, b, c])
+            dist, prev = G.dijkstra(0, direction=-1)
+            self.assertEqual(dist[0], 0)
+            self.assertEqual(dist[1], 1)
+            self.assertEqual(dist[2], 2)
+        
+        print('REUSSSIII')
+        print('-----------------------------------------------------------------------')
+
            
 
 class testMatrice(unittest.TestCase):
