@@ -187,6 +187,10 @@ class MethodesDigraphTest(unittest.TestCase):
 
             dist_undirected, _ = G.dijkstra(3, direction=None)
             self.assertEqual(dist_undirected[0], 2)
+            self.assertEqual(dist_undirected[3], 0)
+            self.assertEqual(dist_undirected[2], 1)
+            self.assertEqual(prev[1], 0)
+            self.assertEqual(prev[2], 0)
             self.assertNotIn(4, dist_undirected)
 
         def test_dijkstra_isolated_source(self):
@@ -233,9 +237,161 @@ class MethodesDigraphTest(unittest.TestCase):
             self.assertEqual(dist[0], 0)
             self.assertEqual(dist[1], 1)
             self.assertEqual(dist[2], 2)
+            self.assertEqual(prev[1], 0)
+
+        def test_dijkstra_with_tgt_early_stop(self):
+            a = node(0, 'A', {}, {1: 1})
+            b = node(1, 'B', {0: 1}, {2: 1})
+            c = node(2, 'C', {1: 1}, {3: 1})
+            d = node(3, 'D', {2: 1}, {})
+            g = open_digraph([0], [3], [a, b, c, d])
+            dist, prev = g.dijkstra(0, direction=1, tgt=2)
+            self.assertEqual(dist, {0: 0, 1: 1, 2: 2})
+            self.assertEqual(prev[2], 1)
+
+        def test_dijkstra_invalid_tgt_type(self):
+            a = node(0, 'A', {}, {})
+            g = open_digraph([0], [], [a])
+            with self.assertRaises(TypeError):
+                g.dijkstra(0, tgt="C")
+
+        def test_dijkstra_invalid_tgt_id(self):
+            a = node(0, 'A', {}, {})
+            g = open_digraph([0], [], [a])
+            with self.assertRaises(ValueError):
+                g.dijkstra(0, tgt=5)
+
+        def test_shortest_path_valid(self):
+            a = node(0, 'A', {}, {1: 1, 2: 1})
+            b = node(1, 'B', {0: 1}, {})
+            c = node(2, 'C', {0: 1}, {3: 1})
+            d = node(3, 'D', {2: 1}, {})
+            g = open_digraph([0], [3], [a, b, c, d])
+            path = g.shortest_path(0, 3)
+            path2 = g.shortest_path(2, 2)
+            self.assertEqual(path, [0, 2, 3])
+            self.assertEqual(path2, [2])
+
+        def test_shortest_path_inaccessible(self):
+            a = node(0, 'A', {}, {1: 1})
+            b = node(1, 'B', {0: 1}, {})
+            c = node(2, 'C', {}, {})
+            g = open_digraph([0], [1, 2], [a, b, c])
+            path = g.shortest_path(0, 2)
+            self.assertEqual(path, [])
+
+        def test_shortest_path_same_node(self):
+            a = node(0, 'A', {}, {})
+            g = open_digraph([0], [0], [a])
+            path = g.shortest_path(0, 0)
+            self.assertEqual(path, [0])
+
+        def test_shortest_path_from_middle_node(self):
+            n0 = node(0, 'A', {}, {1: 1})
+            n1 = node(1, 'B', {}, {5: 1})
+            n2 = node(2, 'C', {}, {5: 1})
+            n3 = node(3, 'D', {5: 1}, {})
+            n4 = node(4, 'E', {5: 1}, {})
+            n5 = node(5, 'U', {0: 1, 1: 1, 2: 1}, {3: 1, 4: 1})
+            g = open_digraph([0, 1, 2], [3, 4], [n0, n1, n2, n3, n4, n5])
+            path_to_3 = g.shortest_path(5, 3)
+            self.assertEqual(path_to_3, [5, 3])
+            path_to_4 = g.shortest_path(5, 4)
+            self.assertEqual(path_to_4, [5, 4])
         
-        print('REUSSSIII')
-        print('-----------------------------------------------------------------------')
+        def test_shortest_path_multiple_routes(self):
+            n0 = node(0, '', {}, {1: 1, 4: 1})
+            n1 = node(1, '', {0: 1}, {2: 1})
+            n2 = node(2, '', {1: 1}, {3: 1})
+            n3 = node(3, '', {2: 1}, {})
+            n4 = node(4, '', {0: 1}, {3: 1})
+            g = open_digraph([0], [3], [n0, n1, n2, n3, n4])
+            path = g.shortest_path(0, 3)
+            self.assertEqual(path, [0, 4, 3])
+
+        def test_dijkstra_multiple_equal_paths(self):
+            n0 = node(0, '', {}, {1: 1, 2: 1})
+            n1 = node(1, '', {0: 1}, {3: 1})
+            n2 = node(2, '', {0: 1}, {3: 1})
+            n3 = node(3, '', {1: 1, 2: 1}, {})
+            g = open_digraph([0], [3], [n0, n1, n2, n3])
+            path = g.shortest_path(0, 3)
+            self.assertIn(path, [[0, 1, 3], [0, 2, 3]])
+
+        def test_dijkstra_with_cycle(self):
+        # 0 → 1 → 2 → 0 (cycle)
+            n0 = node(0, '', {2: 1}, {1: 1})
+            n1 = node(1, '', {0: 1}, {2: 1})
+            n2 = node(2, '', {1: 1}, {0: 1})
+            g = open_digraph([0], [2], [n0, n1, n2])
+            path = g.shortest_path(0, 2, direction = 1)
+            self.assertEqual(path, [0, 1, 2])
+
+        def test_dijkstra_direction_none_parents_and_children(self):
+            # 0 → 1 ← 2 (0 et 2 sont tous deux liés à 1)
+            n0 = node(0, '', {}, {1: 1})
+            n1 = node(1, '', {0: 1, 2: 1}, {})
+            n2 = node(2, '', {}, {1: 1})
+            g = open_digraph([0, 2], [1], [n0, n1, n2])
+            path_0_to_2 = g.shortest_path(0, 2, direction=None)
+            self.assertEqual(path_0_to_2, [0, 1, 2])
+
+        def test_ancetres_communs_distances_td(self):
+
+            #exactement le meme test que celui du td!!
+            n0 = node(0, '', {}, {3: 1})
+            n1 = node(1, '', {}, {5: 1, 8: 1, 4: 1})
+            n2 = node(2, '', {}, {4: 1})
+            n3 = node(3, '', {0: 1}, {5: 1, 6: 1, 7: 1})
+            n4 = node(4, '', {1: 1, 2: 1}, {6: 1})
+            n5 = node(5, '', {1: 1, 3: 1}, {7: 1})
+            n6 = node(6, '', {3: 1, 4: 1}, {8: 1, 9: 1})
+            n7 = node(7, '', {3: 1, 5: 1}, {})
+            n8 = node(8, '', {1: 1, 6: 1}, {})
+            n9 = node(9, '', {6: 1}, {})
+
+            g = open_digraph([0, 2], [7], [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9])
+            resultat = g.ancetres_communs_distances(5, 8)
+            attendu = {0: (2, 3), 3: (1, 2), 1: (1, 1)}
+            self.assertEqual(resultat, attendu)
+
+        # Cas sans ancêtres communs
+        def test_ancetres_communs_none(self):
+            n0 = node(0, '', {}, {1: 1})
+            n1 = node(1, '', {0: 1}, {})
+            n2 = node(2, '', {}, {3: 1})
+            n3 = node(3, '', {2: 1}, {})
+            g = open_digraph([], [], [n0, n1, n2, n3])
+            resultat = g.ancetres_communs_distances(1, 3)
+            self.assertEqual(resultat, {})
+
+        # Cas où u == v
+        def test_ancetres_communs_same_node(self):
+            n0 = node(0, '', {}, {})
+            g = open_digraph([0], [], [n0])
+            resultat = g.ancetres_communs_distances(0, 0)
+            self.assertEqual(resultat, {0: (0, 0)})
+
+        # Cas où un nœud est ancêtre de l'autre
+        def test_ancetres_communs_parent_child(self):
+            n0 = node(0, '', {}, {1: 1})
+            n1 = node(1, '', {0: 1}, {})
+            g = open_digraph([0], [1], [n0, n1])
+            resultat = g.ancetres_communs_distances(0, 1)
+            self.assertEqual(resultat, {0: (0, 1)})
+        
+         # Cas avec plusieurs chemins vers un même ancêtre commun
+        def test_ancetres_communs_multiple_paths(self):
+        # 4 → 2 ← 0
+        # 4 → 3 ← 1
+            n0 = node(0, '', {}, {2: 1})
+            n1 = node(1, '', {}, {3: 1})
+            n2 = node(2, '', {0: 1, 4: 1}, {})
+            n3 = node(3, '', {1: 1, 4: 1}, {})
+            n4 = node(4, '', {}, {2: 1, 3: 1})
+            g = open_digraph([0, 1], [], [n0, n1, n2, n3, n4])
+            resultat = g.ancetres_communs_distances(2, 3)
+            self.assertEqual(resultat, {4: (1, 1)})
 
            
 
