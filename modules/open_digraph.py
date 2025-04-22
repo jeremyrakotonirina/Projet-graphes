@@ -461,13 +461,21 @@ class open_digraph:
         process = f"dot -Tpng temp.dot -o temp.png && open temp.png" #remplacer open par start sur windows
         os.system(process)
     
-    def dijkstra(self, src, direction=None):
+    def dijkstra(self, src, direction=None, tgt = None):
         """
-        Implémentation conforme à l'algorithme du TD :
-        - src : identifiant du nœud source
-        - direction : None (non orienté), 1 (enfants), -1 (parents)
-        Retourne : distances, prev
+        Algorithme de Dijkstra modifié pour s'arrêter dès qu'on atteint tgt (si spécifié).
+        Retourne les dictionnaires dist et prev.
         """
+        
+        if direction not in (None, 1, -1):
+            raise ValueError("direction doit être None, 1 ou -1")
+        
+        if tgt is not None:
+            if not isinstance(tgt, int):
+                raise TypeError("tgt doit être un identifiant entier d'un nœud (int)")
+            if tgt not in self.get_id_node_map():
+                raise ValueError("tgt doit être un identifiant de nœud existant dans le graphe")
+        
         Q = [src]
         dist = {src: 0}
         prev = {}
@@ -476,6 +484,9 @@ class open_digraph:
             # Trouver le nœud avec la distance minimale
             u = min(Q, key=lambda node_id: dist[node_id])
             Q.remove(u)
+
+            if tgt is not None and u == tgt:
+                break
 
             u_node = self.get_node_by_id(u)
 
@@ -486,8 +497,6 @@ class open_digraph:
                 neighbours = list(u_node.get_children().keys())
             elif direction == -1:
                 neighbours = list(u_node.get_parents().keys())
-            else:
-                raise ValueError("direction doit être None, 1 ou -1")
 
             for v in neighbours:
                 if v not in dist:
@@ -497,6 +506,37 @@ class open_digraph:
                     prev[v] = u
 
         return dist, prev
+    
+    def shortest_path(self, u, v, direction=None):
+        """
+        Retourne la liste des IDs formant le plus court chemin de u à v.
+        Retourne [] si aucun chemin n'existe.
+        """
+        dist, prev = self.dijkstra(u, direction=direction, tgt=v)
+
+        if v not in dist:
+            return []  # Aucun chemin possible
+
+        path = []
+        current = v
+        while current in prev:
+            path.append(current)
+            current = prev[current]
+        path.append(u)
+        path.reverse()
+        return path
+    
+    def ancetres_communs_distances(self, id1, id2):
+        """
+        Retourne un dictionnaire des ancêtres communs aux nœuds id1 et id2,
+        avec pour chacun un tuple (distance depuis id1, distance depuis id2).
+        """
+        dist1, _ = self.dijkstra(id1, direction=-1)
+        dist2, _ = self.dijkstra(id2, direction=-1)
+        ancetres = set(dist1.keys()) & set(dist2.keys())
+        return {k: (dist1[k], dist2[k]) for k in ancetres}
+    
+    
 
 
 def graph_from_adjacency_matrix(matrice):
