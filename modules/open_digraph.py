@@ -461,6 +461,35 @@ class open_digraph:
         process = f"dot -Tpng temp.dot -o temp.png && open temp.png" #remplacer open par start sur windows
         os.system(process)
     
+    def min_id(self):
+        """renvoie l'indice minimum des noeuds du graphe"""
+        return min(self.get_id_node_map())
+    
+    def max_id(self):
+        """renvoie l'indice maximum des noeuds du graphe"""
+        return max(self.get_id_node_map())
+
+    def shift_indices(self,n):
+        """rajoute n à tous les indices du graphe"""
+        old_to_new = {}
+    
+        for node in self.get_nodes():
+            old_id = node.get_id()
+            new_id = old_id + n
+            old_to_new[old_id] = new_id
+        
+        for node in self.get_nodes():
+            node.set_id(old_to_new[node.get_id()])  # change l'id lui-même
+
+        for node in self.get_nodes():
+            node.parents = {old_to_new[k]: v for k, v in node.parents.items()}
+            node.children = {old_to_new[k]: v for k, v in node.children.items()}
+
+        self.nodes = {old_to_new[old_id]: node for old_id, node in self.nodes.items()}
+
+        self.inputs = [old_to_new[i] for i in self.inputs]
+        self.outputs = [old_to_new[o] for o in self.outputs]
+    
     def dijkstra(self, src, direction=None, tgt = None):
         """
         Algorithme de Dijkstra modifié pour s'arrêter dès qu'on atteint tgt (si spécifié).
