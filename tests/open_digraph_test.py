@@ -393,6 +393,33 @@ class MethodesDigraphTest(unittest.TestCase):
             resultat = g.ancetres_communs_distances(2, 3)
             self.assertEqual(resultat, {4: (1, 1)})
 
+        def test_min_max_id(self):
+            g = open_digraph([], [], [
+                node(10, "", {}, {}),
+                node(20, "", {}, {}),
+                node(30, "", {}, {})
+            ])
+            self.assertEqual(g.min_id(), 10)
+            self.assertEqual(g.max_id(), 30)
+    
+        def test_shift_indices(self):
+            g = open_digraph([], [], [
+                node(0, "", {}, {1: 1}),
+                node(1, "", {0: 1}, {2: 1}),
+                node(2, "", {1: 1}, {})
+            ])
+            g.shift_indices(10)
+            
+            ids = g.get_id_node_map()
+            self.assertIn(10, ids)
+            self.assertIn(11, ids)
+            self.assertIn(12, ids)
+            
+            self.assertEqual(g.get_node_by_id(10).get_children(), {11: 1})
+            self.assertEqual(g.get_node_by_id(11).get_parents(), {10: 1})
+            self.assertEqual(g.get_node_by_id(11).get_children(), {12: 1})
+            self.assertEqual(g.get_node_by_id(12).get_parents(), {11: 1})
+
            
 
 class testMatrice(unittest.TestCase):
@@ -440,7 +467,71 @@ class testMatrice(unittest.TestCase):
             self.assertTrue(all(m4[i][j] == 0 for i in range(n) for j in range(i)),
                             "random_triangular_int_matrix doit être triangulaire")
 
-                     
+class TestBoolCirc(unittest.TestCase):
+
+    def test_is_cyclic_false(self):
+        # Graphe acyclique simple : 0 -> 1
+        g = open_digraph([0], [1], [
+            node(0, "|", {}, {1: 1}),
+            node(1, "", {0:1}, {})
+        ])
+        bc = bool_circ(g)
+        self.assertFalse(bc.is_cyclic())
+
+        # Graphe cyclique simple : 0 -> 1 -> 0
+        g = open_digraph([0], [1], [
+            node(0, "", {1: 1}, {1: 1}),
+            node(1, "", {0: 1}, {0: 1})
+        ])
+        with self.assertRaises(Exception):
+            bool_circ(g)  #lève une exception car le graphe est cyclique
+
+        g = open_digraph([0], [2,3], [
+            node(0, "~", {}, {1: 1}),
+            node(1, "&", {0: 1}, {2:1, 3:1}),
+            node(2, "", {1:1}, {}),
+            node(3, "", {1:1}, {})
+
+        ])
+        with self.assertRaises(Exception):
+            bc = bool_circ(g)
+        
+      
+        g = open_digraph([], [], [
+            node(0, "", {}, {2: 1}),
+            node(1, "", {}, {2: 1}),
+            node(2, "", {0: 1, 1: 1}, {})
+        ])
+        with self.assertRaises(Exception):
+            bc = bool_circ(g)
+
+        # Noeud NON mal formé (2 sorties)
+        g = open_digraph([], [], [
+            node(0, "~", {}, {1: 1, 2: 1}),
+            node(1, "", {0: 1}, {}),
+            node(2, "", {0: 1}, {})
+        ])
+        with self.assertRaises(Exception):
+            bool_circ(g)
+
+        # Noeud AND sans sortie
+        g = open_digraph([], [], [
+            node(0, "&", {1: 1, 2: 1}, {}),
+            node(1, "", {}, {0: 1}),
+            node(2, "", {}, {0: 1})
+        ])
+        with self.assertRaises(Exception):
+            bool_circ(g)
+
+        # Noeud OR bien formé
+        g = open_digraph([], [], [
+            node(0, "2", {}, {2: 1}),
+            node(1, "1", {}, {2: 1}),
+            node(2, "|", {0: 1, 1: 1}, {3: 1}),
+            node(3, "", {2: 1}, {})
+        ])
+        bc = bool_circ(g)
+        self.assertTrue(True)                     
 
 if __name__ == '__main__':
     unittest.main()
