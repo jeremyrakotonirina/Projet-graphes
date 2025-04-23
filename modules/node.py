@@ -72,12 +72,14 @@ class node:
         res=0
         for i in self.get_parents():
             res += self.get_parents()[i]
+        return res
     
     def outdegree(self):
         "renvoie le degré sortant du noeud"
         res=0
         for i in self.get_children():
             res += self.get_children()[i]
+        return res
     
     def degree(self):
         "renvoie le degré total du noeud"
