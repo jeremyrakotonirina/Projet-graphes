@@ -12,30 +12,32 @@ class bool_circ(open_digraph):
     """
     def __init__ (self, g):
         """crée un circuit booléen en utilisant g qui est un open_digraph"""
-        g.is_well_formed() #vérifie si c'est un circuit booléen
         super().__init__(g.inputs.copy(), g.outputs.copy(), 
                          [noeud.copy() for noeud in g.nodes.values()])
+        self.is_well_formed()
     
     
     def is_cyclic(self):
         """renvoie un booléen si le graphe est cyclique avec l'algorithme du cours"""
-
         copie=self.copy()
         while copie.get_nodes() != [] : #s'il a encore des noeuds
-            if copie.get_output_ids() == []: #s'il n'a pas de feuille
+            feuilles = [n.id for n in copie.get_nodes() if n.outdegree() == 0]
+            if feuilles == []: #s'il n'a pas de feuille
                 return True
             else:
-                id_supp=copie.get_outputs_ids()[0] #supprime une feuille
+                id_supp=feuilles[0] #supprime une feuille
                 copie.remove_node_by_id(id_supp) #supprime les aretes associées
                 del copie.nodes[id_supp] #supprime le noeud
-                del copie.outputs[0]
+                feuilles.remove(id_supp)
+                if id_supp in copie.outputs:
+                    copie.outputs.remove(id_supp)
         return False
     
     def is_well_formed(self):
         """vérifie que le circuit booléen est bien formé, lève une exception sinon"""
 
         if self.is_cyclic():
-            raise Exception("le graphe n'est pas cyclique")
+            raise Exception("le graphe est cyclique")
         for noeud in self.get_nodes():
             if noeud.get_label() == "":
                 if noeud.indegree() != 1 :
