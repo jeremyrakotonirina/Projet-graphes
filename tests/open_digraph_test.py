@@ -166,12 +166,13 @@ class MethodesDigraphTest(unittest.TestCase):
         print('----------------------------test de methode dikstra--------------------------------')
         def test_djikstra(self):
             
-            a = node(0, 'A', {}, {1: 1, 2: 1})
-            b = node(1, 'B', {0: 1}, {3: 1})
-            c = node(2, 'C', {0: 1}, {3: 1})
-            d = node(3, 'D', {1: 1, 2: 1}, {})
-            e = node(4, 'E', {}, {})  # isolé
-            G = open_digraph([0], [3], [a, b, c, d, e])
+            n0 = node(0, 'A', {}, {1: 1, 2: 1})
+            n1 = node(1, 'B', {0: 1}, {3: 1})
+            n2 = node(2, 'C', {0: 1}, {3: 1})
+            n3 = node(3, 'D', {1: 1, 2: 1}, {})
+            n4 = node(4, 'E', {}, {}) 
+            G = open_digraph([], [], [n0, n1, n2, n3, n4])
+            G.is_well_formed()
 
             dist, prev = G.dijkstra(0, direction=1)
 
@@ -185,154 +186,168 @@ class MethodesDigraphTest(unittest.TestCase):
             self.assertEqual(prev[2], 0)
             self.assertIn(prev[3], [1, 2])
 
-            dist_undirected, _ = G.dijkstra(3, direction=None)
-            self.assertEqual(dist_undirected[0], 2)
-            self.assertEqual(dist_undirected[3], 0)
-            self.assertEqual(dist_undirected[2], 1)
+            dist_2, prev2 = G.dijkstra(3, direction=None)
+            self.assertEqual(dist_2[0], 2)
+            self.assertEqual(dist_2[3], 0)
+            self.assertEqual(dist_2[2], 1)
             self.assertEqual(prev[1], 0)
             self.assertEqual(prev[2], 0)
-            self.assertNotIn(4, dist_undirected)
+            self.assertNotIn(4, dist_2)
 
-        def test_dijkstra_isolated_source(self):
-            a = node(0, 'A', {}, {})
-            b = node(1, 'B', {}, {})
-            G = open_digraph([0], [1], [a, b])
+        def test_dijkstra_2_noeud_isolé(self):
+            n0 = node(0, '', {}, {})
+            n1 = node(1, '', {}, {})
+            G = open_digraph([], [], [n0, n1])
+            G.is_well_formed()
             dist, prev = G.dijkstra(0, direction=1)
             self.assertEqual(dist, {0: 0})
             self.assertEqual(prev, {})
 
-        def test_dijkstra_self_loop(self):
-            a = node(0, 'A', {0: 1}, {0: 1})
-            G = open_digraph([0], [0], [a])
+        def test_dijkstra_cycle_sur_lui_meme(self):
+            n0 = node(0, '', {0: 1}, {0: 1})
+            G = open_digraph([], [], [n0])
+            G.is_well_formed()
             dist, prev = G.dijkstra(0, direction=1)
             self.assertEqual(dist, {0: 0})
             self.assertEqual(prev, {})
 
-        def test_dijkstra_multiple_paths(self):
-            a = node(0, 'A', {}, {1: 1, 2: 1})
-            b = node(1, 'B', {0: 1}, {3: 1})
-            c = node(2, 'C', {0: 1}, {})
-            d = node(3, 'D', {1: 1}, {})
-            G = open_digraph([0], [3], [a, b, c, d])
+        def test_dijkstra_plusieur_chemin(self):
+            a = node(0, '', {}, {1: 1, 2: 1})
+            b = node(1, '', {0: 1}, {3: 1})
+            c = node(2, '', {0: 1}, {})
+            d = node(3, '', {1: 1}, {})
+            G = open_digraph([], [2, 3], [a, b, c, d])
+            G.is_well_formed()
             dist, prev = G.dijkstra(0, direction=1)
             self.assertEqual(dist[3], 2)
             self.assertEqual(prev[3], 1)
 
-        def test_dijkstra_disconnected(self):
-            a = node(0, 'A', {}, {1: 1})
-            b = node(1, 'B', {0: 1}, {})
-            c = node(2, 'C', {}, {})
+        def test_dijkstra_séparé(self):
+            a = node(0, '', {}, {1: 1})
+            b = node(1, '', {0: 1}, {})
+            c = node(2, '', {}, {})
             G = open_digraph([0], [1], [a, b, c])
+            G.is_well_formed()
             dist, prev = G.dijkstra(0, direction=1)
             self.assertIn(0, dist)
             self.assertIn(1, dist)
             self.assertNotIn(2, dist)
 
-        def test_dijkstra_reverse_direction(self):
-            a = node(0, 'A', {1: 1}, {})
-            b = node(1, 'B', {2: 1}, {0: 1})
-            c = node(2, 'C', {}, {1: 1})
+        def test_dijkstra_direction_inversé(self):
+            a = node(0, '', {1: 1}, {})
+            b = node(1, '', {2: 1}, {0: 1})
+            c = node(2, '', {}, {1: 1})
             G = open_digraph([2], [0], [a, b, c])
+            G.is_well_formed()
             dist, prev = G.dijkstra(0, direction=-1)
             self.assertEqual(dist[0], 0)
             self.assertEqual(dist[1], 1)
             self.assertEqual(dist[2], 2)
             self.assertEqual(prev[1], 0)
 
-        def test_dijkstra_with_tgt_early_stop(self):
-            a = node(0, 'A', {}, {1: 1})
-            b = node(1, 'B', {0: 1}, {2: 1})
-            c = node(2, 'C', {1: 1}, {3: 1})
-            d = node(3, 'D', {2: 1}, {})
+        def test_dijkstra_avec_tgt(self):
+            a = node(0, '', {}, {1: 1})
+            b = node(1, '', {0: 1}, {2: 1})
+            c = node(2, '', {1: 1}, {3: 1})
+            d = node(3, '', {2: 1}, {})
             g = open_digraph([0], [3], [a, b, c, d])
+            g.is_well_formed()
             dist, prev = g.dijkstra(0, direction=1, tgt=2)
             self.assertEqual(dist, {0: 0, 1: 1, 2: 2})
             self.assertEqual(prev[2], 1)
 
-        def test_dijkstra_invalid_tgt_type(self):
-            a = node(0, 'A', {}, {})
-            g = open_digraph([0], [], [a])
+        def test_dijkstra_tgt_eroroné(self):
+            a = node(0, '', {}, {})
+            g = open_digraph([], [], [a])
+            g.is_well_formed()
             with self.assertRaises(TypeError):
                 g.dijkstra(0, tgt="C")
 
-        def test_dijkstra_invalid_tgt_id(self):
-            a = node(0, 'A', {}, {})
-            g = open_digraph([0], [], [a])
+        def test_dijkstra_identifiant_tgt_faux(self):
+            a = node(0, '', {}, {})
+            g = open_digraph([], [], [a])
+            g.is_well_formed()
             with self.assertRaises(ValueError):
                 g.dijkstra(0, tgt=5)
 
-        def test_shortest_path_valid(self):
-            a = node(0, 'A', {}, {1: 1, 2: 1})
-            b = node(1, 'B', {0: 1}, {})
-            c = node(2, 'C', {0: 1}, {3: 1})
-            d = node(3, 'D', {2: 1}, {})
-            g = open_digraph([0], [3], [a, b, c, d])
+        def test_shortest_path(self):
+            a = node(0, '', {}, {1: 1, 2: 1})
+            b = node(1, '', {0: 1}, {})
+            c = node(2, '', {0: 1}, {3: 1})
+            d = node(3, '', {2: 1}, {})
+            g = open_digraph([], [3], [a, b, c, d])
+            g.is_well_formed()
             path = g.shortest_path(0, 3)
             path2 = g.shortest_path(2, 2)
             self.assertEqual(path, [0, 2, 3])
             self.assertEqual(path2, [2])
 
         def test_shortest_path_inaccessible(self):
-            a = node(0, 'A', {}, {1: 1})
-            b = node(1, 'B', {0: 1}, {})
-            c = node(2, 'C', {}, {})
-            g = open_digraph([0], [1, 2], [a, b, c])
+            a = node(0, '', {}, {1: 1})
+            b = node(1, '', {0: 1}, {})
+            c = node(2, '', {}, {})
+            g = open_digraph([0], [1], [a, b, c])
+            g.is_well_formed()
             path = g.shortest_path(0, 2)
             self.assertEqual(path, [])
 
-        def test_shortest_path_same_node(self):
-            a = node(0, 'A', {}, {})
-            g = open_digraph([0], [0], [a])
+        def test_shortest_path_meme_noeud(self):
+            a = node(0, '', {}, {})
+            g = open_digraph([], [], [a])
+            g.is_well_formed()
             path = g.shortest_path(0, 0)
             self.assertEqual(path, [0])
 
-        def test_shortest_path_from_middle_node(self):
-            n0 = node(0, 'A', {}, {1: 1})
-            n1 = node(1, 'B', {}, {5: 1})
-            n2 = node(2, 'C', {}, {5: 1})
-            n3 = node(3, 'D', {5: 1}, {})
-            n4 = node(4, 'E', {5: 1}, {})
-            n5 = node(5, 'U', {0: 1, 1: 1, 2: 1}, {3: 1, 4: 1})
-            g = open_digraph([0, 1, 2], [3, 4], [n0, n1, n2, n3, n4, n5])
+        def test_shortest_path_depuis_milieu(self):
+            n0 = node(0, '', {}, {1: 1, 5: 1})
+            n1 = node(1, '', {0: 1}, {5: 1})
+            n2 = node(2, '', {}, {5: 1})
+            n3 = node(3, '', {5: 1}, {})
+            n4 = node(4, '', {5: 1}, {})
+            n5 = node(5, '', {0: 1, 1: 1, 2: 1}, {3: 1, 4: 1})
+            g = open_digraph([2], [3, 4], [n0, n1, n2, n3, n4, n5])
+            g.is_well_formed()
             path_to_3 = g.shortest_path(5, 3)
             self.assertEqual(path_to_3, [5, 3])
             path_to_4 = g.shortest_path(5, 4)
             self.assertEqual(path_to_4, [5, 4])
         
-        def test_shortest_path_multiple_routes(self):
+        def test_shortest_path_plusieur_chemins(self):
             n0 = node(0, '', {}, {1: 1, 4: 1})
             n1 = node(1, '', {0: 1}, {2: 1})
             n2 = node(2, '', {1: 1}, {3: 1})
-            n3 = node(3, '', {2: 1}, {})
+            n3 = node(3, '', {4: 1, 2: 1}, {})
             n4 = node(4, '', {0: 1}, {3: 1})
-            g = open_digraph([0], [3], [n0, n1, n2, n3, n4])
+            g = open_digraph([], [], [n0, n1, n2, n3, n4])
+            g.is_well_formed()
             path = g.shortest_path(0, 3)
             self.assertEqual(path, [0, 4, 3])
 
-        def test_dijkstra_multiple_equal_paths(self):
+        def test_dijkstra_plusieurs_chemins_egaux(self):
             n0 = node(0, '', {}, {1: 1, 2: 1})
             n1 = node(1, '', {0: 1}, {3: 1})
             n2 = node(2, '', {0: 1}, {3: 1})
             n3 = node(3, '', {1: 1, 2: 1}, {})
-            g = open_digraph([0], [3], [n0, n1, n2, n3])
+            g = open_digraph([], [], [n0, n1, n2, n3])
+            g.is_well_formed()
             path = g.shortest_path(0, 3)
             self.assertIn(path, [[0, 1, 3], [0, 2, 3]])
 
-        def test_dijkstra_with_cycle(self):
-        # 0 → 1 → 2 → 0 (cycle)
+        def test_dijkstra_avec_cycle(self):
             n0 = node(0, '', {2: 1}, {1: 1})
             n1 = node(1, '', {0: 1}, {2: 1})
             n2 = node(2, '', {1: 1}, {0: 1})
-            g = open_digraph([0], [2], [n0, n1, n2])
+            g = open_digraph([], [], [n0, n1, n2])
+            g.is_well_formed()
             path = g.shortest_path(0, 2, direction = 1)
             self.assertEqual(path, [0, 1, 2])
 
-        def test_dijkstra_direction_none_parents_and_children(self):
-            # 0 → 1 ← 2 (0 et 2 sont tous deux liés à 1)
+        def test_dijkstra_direction_none(self):
             n0 = node(0, '', {}, {1: 1})
             n1 = node(1, '', {0: 1, 2: 1}, {})
             n2 = node(2, '', {}, {1: 1})
-            g = open_digraph([0, 2], [1], [n0, n1, n2])
+            g = open_digraph([0, 2], [], [n0, n1, n2])
+            g.is_well_formed()
             path_0_to_2 = g.shortest_path(0, 2, direction=None)
             self.assertEqual(path_0_to_2, [0, 1, 2])
 
@@ -350,48 +365,390 @@ class MethodesDigraphTest(unittest.TestCase):
             n8 = node(8, '', {1: 1, 6: 1}, {})
             n9 = node(9, '', {6: 1}, {})
 
-            g = open_digraph([0, 2], [7], [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9])
+            g = open_digraph([0, 2], [9], [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9])
+            g.is_well_formed()
             resultat = g.ancetres_communs_distances(5, 8)
             attendu = {0: (2, 3), 3: (1, 2), 1: (1, 1)}
             self.assertEqual(resultat, attendu)
 
         # Cas sans ancêtres communs
-        def test_ancetres_communs_none(self):
+        def test_ancetres_communs_pas_dancetres(self):
             n0 = node(0, '', {}, {1: 1})
             n1 = node(1, '', {0: 1}, {})
             n2 = node(2, '', {}, {3: 1})
             n3 = node(3, '', {2: 1}, {})
             g = open_digraph([], [], [n0, n1, n2, n3])
+            g.is_well_formed()
             resultat = g.ancetres_communs_distances(1, 3)
             self.assertEqual(resultat, {})
 
         # Cas où u == v
-        def test_ancetres_communs_same_node(self):
+        def test_ancetres_communs_meme_noeud(self):
             n0 = node(0, '', {}, {})
-            g = open_digraph([0], [], [n0])
+            g = open_digraph([], [], [n0])
             resultat = g.ancetres_communs_distances(0, 0)
+            g.is_well_formed()
             self.assertEqual(resultat, {0: (0, 0)})
 
-        # Cas où un nœud est ancêtre de l'autre
-        def test_ancetres_communs_parent_child(self):
+        # Cas où un noeud est ancêtre de l'autre
+        def test_ancetres_communs_lun_ancetre_de_lautre(self):
             n0 = node(0, '', {}, {1: 1})
             n1 = node(1, '', {0: 1}, {})
             g = open_digraph([0], [1], [n0, n1])
+            g.is_well_formed()
             resultat = g.ancetres_communs_distances(0, 1)
             self.assertEqual(resultat, {0: (0, 1)})
         
          # Cas avec plusieurs chemins vers un même ancêtre commun
-        def test_ancetres_communs_multiple_paths(self):
-        # 4 → 2 ← 0
-        # 4 → 3 ← 1
+        def test_ancetres_communs_plusieur_chemins_vers_memenoeud(self):
             n0 = node(0, '', {}, {2: 1})
             n1 = node(1, '', {}, {3: 1})
             n2 = node(2, '', {0: 1, 4: 1}, {})
             n3 = node(3, '', {1: 1, 4: 1}, {})
             n4 = node(4, '', {}, {2: 1, 3: 1})
             g = open_digraph([0, 1], [], [n0, n1, n2, n3, n4])
+            g.is_well_formed()
             resultat = g.ancetres_communs_distances(2, 3)
             self.assertEqual(resultat, {4: (1, 1)})
+
+        def test_tri_topologique_td(self):
+            # exemple du td
+            n0 = node(0, '', {}, {3: 1})
+            n1 = node(1, '', {}, {4: 1, 5: 1, 8: 1})
+            n2 = node(2, '', {}, {4: 1})
+            n3 = node(3, '', {0: 1}, {5: 1, 6: 1, 7: 1})
+            n4 = node(4, '', {1: 1, 2: 1}, {6: 1})
+            n5 = node(5, '', {1: 1, 3: 1}, {7: 1})
+            n6 = node(6, '', {3: 1, 4: 1}, {8: 1, 9: 1})
+            n7 = node(7, '', {3: 1, 5: 1}, {})
+            n8 = node(8, '', {1: 1, 6: 1}, {})
+            n9 = node(9, '', {6: 1}, {})
+
+            g = open_digraph([0,2], [9], [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9])
+
+            g.is_well_formed()
+
+            attendu = [[0, 1, 2], [3, 4], [5, 6], [7, 8, 9]]
+
+            resultat = g.tri_topologique_par_niveaux()
+
+            self.assertEqual(resultat, attendu)
+
+        def test_tri_topo_ligne(self):
+            n0 = node(0, '', {3: 1}, {1: 1})
+            n1 = node(1, '', {0: 1}, {2: 1})
+            n2 = node(2, '', {1: 1}, {4: 1})
+            i0 = node(3, '', {}, {0: 1})
+            o0 = node(4, '', {2: 1}, {})
+
+            g = open_digraph([3], [4], [n0, n1, n2, i0, o0])
+            g.is_well_formed()
+
+            attendu = [[3], [0], [1], [2], [4]]
+            self.assertEqual(g.tri_topologique_par_niveaux(), attendu)
+
+        def test_tri_topo_special(self):
+            n0 = node(0, '', {3: 1}, {2: 1})
+            n1 = node(1, '', {4: 1}, {2: 1})
+            n2 = node(2, '', {0: 1, 1: 1}, {5: 1})
+            i0 = node(3, '', {}, {0: 1})
+            i1 = node(4, '', {}, {1: 1})
+            o0 = node(5, '', {2: 1}, {})
+
+            g = open_digraph([3, 4], [5], [n0, n1, n2, i0, i1, o0])
+            g.is_well_formed()
+
+            attendu = [[3, 4], [0, 1], [2], [5]]
+            self.assertEqual(g.tri_topologique_par_niveaux(), attendu)
+
+        def test_tri_topo_vide(self):
+            g = open_digraph([], [], [])
+            g.is_well_formed()
+            self.assertEqual(g.tri_topologique_par_niveaux(), [])
+
+        def test_tri_topo_un_noeud(self):
+            n0 = node(0, '', {1: 1}, {2: 1})
+            i0 = node(1, '', {}, {0: 1})
+            o0 = node(2, '', {0: 1}, {})
+
+            g = open_digraph([1], [2], [n0, i0, o0])
+            g.is_well_formed()
+
+            self.assertEqual(g.tri_topologique_par_niveaux(), [[1], [0], [2]])
+
+        def test_tri_topo_cycle_2_noeuds(self):
+            n0 = node(0, '', {2: 1, 1: 1}, {1: 1})
+            n1 = node(1, '', {0: 1}, {0: 1, 3: 1})
+            i0 = node(2, '', {}, {0: 1})
+            o0 = node(3, '', {1: 1}, {})
+
+            g = open_digraph([2], [3], [n0, n1, i0, o0])
+            g.is_well_formed()
+
+            with self.assertRaises(ValueError):
+                g.tri_topologique_par_niveaux()
+
+        def test_tri_topo_cycle_complexe(self):
+            n0 = node(0, '', {2: 1, 3: 1}, {1: 1})
+            n1 = node(1, '', {0: 1}, {2: 1, 4: 1})
+            n2 = node(2, '', {1: 1}, {0: 1})
+            i0 = node(3, '', {}, {0: 1})
+            o0 = node(4, '', {1: 1}, {})
+
+            g = open_digraph([3], [4], [n0, n1, n2, i0, o0])
+            g.is_well_formed()
+
+            with self.assertRaises(ValueError):
+                g.tri_topologique_par_niveaux()
+        
+        def test_tri_topo_avec_noeud_isole(self):
+
+            n0 = node(0, '', {3: 1}, {1: 1})
+            n1 = node(1, '', {0: 1}, {5: 1})
+            n2 = node(2, '', {4: 1}, {6: 1}) 
+            i0 = node(3, '', {}, {0: 1})
+            i1 = node(4, 'i', {}, {2: 1})
+            o0 = node(5, '', {1: 1}, {})
+            o1 = node(6, '', {2: 1}, {})
+
+            g = open_digraph([3, 4], [5, 6], [n0, n1, n2, i0, i1, o0, o1])
+            g.is_well_formed()
+
+            attendu = [[3, 4], [0, 2], [1, 6], [5]]
+            self.assertEqual(g.tri_topologique_par_niveaux(), attendu)
+
+        def test_profondeur_noeud_ligne(self):
+            n0 = node(0, '', {3: 1}, {1: 1})
+            n1 = node(1, '', {0: 1}, {2: 1})
+            n2 = node(2, '', {1: 1}, {4: 1})
+            i0 = node(3, '', {}, {0: 1})
+            o0 = node(4, '', {2: 1}, {})
+
+            g = open_digraph([3], [4], [n0, n1, n2, i0, o0])
+            g.is_well_formed()
+
+            self.assertEqual(g.profondeur_noeud(3), 0)  
+            self.assertEqual(g.profondeur_noeud(0), 1)
+            self.assertEqual(g.profondeur_noeud(1), 2)
+            self.assertEqual(g.profondeur_noeud(2), 3)
+            self.assertEqual(g.profondeur_noeud(4), 4)  
+
+        def test_profondeur_noeud_qui_converge(self):
+            n0 = node(0, '', {3: 1}, {2: 1})
+            n1 = node(1, '', {4: 1}, {2: 1})
+            n2 = node(2, '', {0: 1, 1: 1}, {5: 1})
+            i0 = node(3, '', {}, {0: 1})
+            i1 = node(4, '', {}, {1: 1})
+            o0 = node(5, '', {2: 1}, {})
+
+            g = open_digraph([3, 4], [5], [n0, n1, n2, i0, i1, o0])
+            g.is_well_formed()
+
+            self.assertEqual(g.profondeur_noeud(2), 2)
+
+        def test_profondeur_noeud_inexistant(self):
+            n0 = node(0, '', {2: 1}, {1: 1})
+            n1 = node(1, '', {0: 1}, {3: 1})
+            i0 = node(2, '', {}, {0: 1})
+            o0 = node(3, '', {1: 1}, {})
+
+            g = open_digraph([2], [3], [n0, n1, i0, o0])
+            g.is_well_formed()
+
+            with self.assertRaises(ValueError):
+                g.profondeur_noeud(9) 
+
+        def test_profondeur_noeud_graphe_cyclique(self):
+            n0 = node(0, '', {2: 1, 1: 1}, {1: 1})
+            n1 = node(1, '', {0: 1}, {0: 1, 3: 1})
+            i0 = node(2, '', {}, {0: 1})
+            o0 = node(3, '', {1: 1}, {})
+
+            g = open_digraph([2], [3], [n0, n1, i0, o0])
+            g.is_well_formed()
+
+            with self.assertRaises(ValueError):
+                g.profondeur_noeud(0)  # le tri topologique lève une erreur à cause du cycle
+
+        def test_profondeur_noeud_graphe_vide(self):
+            g = open_digraph([], [], [])
+            g.is_well_formed()
+            
+            with self.assertRaises(ValueError):
+                g.profondeur_noeud(0)  
+
+        def test_profondeur_noeud_solo(self):
+            n0 = node(0, '', {}, {})
+            g = open_digraph([], [], [n0])
+            g.is_well_formed()
+            self.assertEqual(g.profondeur_noeud(0), 0)
+
+        def test_profondeur_noeud_separe(self):
+            n0 = node(0, '', {}, {})
+            n1 = node(1, '', {}, {})
+            n2 = node(2, '', {}, {})
+            g = open_digraph([], [], [n0, n1, n2])
+            g.is_well_formed()
+            self.assertEqual(g.profondeur_noeud(0), 0)
+            self.assertEqual(g.profondeur_noeud(1), 0)
+            self.assertEqual(g.profondeur_noeud(2), 0)
+
+        def test_profondeur_graphe_ligne(self):
+            n0 = node(0, '', {3: 1}, {1: 1})
+            n1 = node(1, '', {0: 1}, {2: 1})
+            n2 = node(2, '', {1: 1}, {4: 1})
+            i0 = node(3, '', {}, {0: 1})
+            o0 = node(4, '', {2: 1}, {})
+
+            g = open_digraph([3], [4], [n0, n1, n2, i0, o0])
+            g.is_well_formed()
+
+            self.assertEqual(g.profondeur_graphe(), 5)
+
+        def test_profondeur_graphe_vide(self):
+            g = open_digraph([], [], [])
+            g.is_well_formed()
+
+            self.assertEqual(g.profondeur_graphe(), 0)
+
+        def test_profondeur_graphe_plusieur_branche(self):
+            n0 = node(0, '', {3: 1}, {6: 1})
+            n1 = node(1, '', {4: 1}, {7: 1})
+            n2 = node(2, '', {5: 1}, {8: 1})
+            n3 = node(3, '', {}, {0: 1})
+            n4 = node(4, '', {}, {1: 1})
+            n5 = node(5, '', {}, {2: 1})
+            n6 = node(6, '', {0: 1}, {})
+            n7 = node(7, '', {1: 1}, {})
+            n8 = node(8, '', {2: 1}, {})
+
+            g = open_digraph([3, 4, 5], [6, 7, 8], [n0, n1, n2, n3, n4, n5, n6, n7, n8])
+            g.is_well_formed()
+
+            self.assertEqual(g.profondeur_graphe(), 3)
+
+        def test_profondeur_graphe_cyclique(self):
+            n0 = node(0, '', {2: 1, 1: 1}, {1: 1})
+            n1 = node(1, '', {0: 1}, {0: 1, 3: 1})
+            i0 = node(2, '', {}, {0: 1})
+            o0 = node(3, '', {1: 1}, {})
+
+            g = open_digraph([2], [3], [n0, n1, i0, o0])
+            g.is_well_formed()
+
+            with self.assertRaises(ValueError):
+                g.profondeur_graphe()
+
+        def test_profondeur_graphe_2branche_separe(self):
+            n0 = node(0, '', {}, {1: 1})
+            n1 = node(1, '', {0: 1}, {})
+            n2 = node(2, '', {}, {3: 1})
+            n3 = node(3, '', {2: 1}, {4: 1})
+            n4 = node(4, '', {3: 1}, {})
+
+            g = open_digraph([0, 2], [1, 4], [n0, n1, n2, n3, n4])
+            g.is_well_formed()
+
+            self.assertEqual(g.profondeur_graphe(), 3)
+
+        def test_plus_long_chemin_ligne(self):
+            n0 = node(0, '', {}, {1: 1})
+            n1 = node(1, '', {0: 1}, {2: 1})
+            n2 = node(2, '', {1: 1}, {3: 1})
+            n3 = node(3, '', {2: 1}, {})
+            g = open_digraph([0], [3], [n0, n1, n2, n3])
+            g.is_well_formed()
+
+            longueur, chemin = g.plus_long_chemin(0, 3)
+            self.assertEqual(longueur, 3)
+            self.assertEqual(chemin, [0, 1, 2, 3])
+
+        def test_plus_long_chemin_deux_chemins_egaux(self):
+            n0 = node(0, '', {}, {1: 1, 2: 1})
+            n1 = node(1, '', {0: 1}, {3: 1})
+            n2 = node(2, '', {0: 1}, {3: 1})
+            n3 = node(3, '', {1: 1, 2: 1}, {})
+            g = open_digraph([], [], [n0, n1, n2, n3])
+            g.is_well_formed()
+
+            longueur, chemin = g.plus_long_chemin(0, 3)
+            self.assertEqual(longueur, 2)
+            self.assertIn(chemin, [[0, 1, 3], [0, 2, 3]])  # les deux chemins sont valides
+
+        def test_plus_long_chemin_deux_chemins_taille_différentes(self):
+            n0 = node(0, '', {}, {1: 1, 2: 1})
+            n1 = node(1, '', {0: 1}, {4: 1})
+            n2 = node(2, '', {0: 1}, {3: 1})
+            n3 = node(3, '', {2: 1}, {4: 1})
+            n4 = node(4, '', {1: 1, 3: 1}, {})
+            g = open_digraph([], [], [n0, n1, n2, n3, n4])
+            g.is_well_formed()
+
+            longueur, chemin = g.plus_long_chemin(0, 4)
+            self.assertEqual(longueur, 3)
+            self.assertEqual(chemin, [0, 2, 3, 4])
+
+        def test_plus_long_chemin_aucun_chemin(self):
+            n0 = node(0, '', {}, {})
+            n1 = node(1, '', {}, {})
+            g = open_digraph([], [], [n0, n1])
+            g.is_well_formed()
+
+            longueur, chemin = g.plus_long_chemin(0, 1)
+            self.assertIsNone(longueur)
+            self.assertEqual(chemin, [])
+
+        def test_plus_long_chemin_noeud_solo(self):
+            n0 = node(0, '', {}, {})
+            g = open_digraph([], [], [n0])
+            g.is_well_formed()
+
+            longueur, chemin = g.plus_long_chemin(0, 0)
+            self.assertEqual(longueur, 0)
+            self.assertEqual(chemin, [0])
+
+        def test_plus_long_chemin_noeud_inexistant(self):
+            n0 = node(0, '', {}, {1: 1})
+            n1 = node(1, '', {0: 1}, {})
+            g = open_digraph([], [], [n0, n1])
+            g.is_well_formed()
+
+            with self.assertRaises(ValueError):
+                g.plus_long_chemin(42, 1)
+
+        def test_plus_long_chemin_graphe_vide(self):
+            g = open_digraph([], [], [])
+            g.is_well_formed()
+
+            with self.assertRaises(ValueError):
+                g.plus_long_chemin(0, 1)
+
+        def test_plus_long_chemin_ligne_dans_autre_sens(self):
+            #doit renovyer chemin vide car v inatteignable
+            n0 = node(0, '', {}, {1: 1})
+            n1 = node(1, '', {0: 1}, {2: 1})
+            n2 = node(2, '', {1: 1}, {3: 1})
+            n3 = node(3, '', {2: 1}, {})
+            g = open_digraph([0], [3], [n0, n1, n2, n3])
+            g.is_well_formed()
+
+            longueur, chemin = g.plus_long_chemin(3, 0)
+            self.assertEqual(longueur, None)
+            self.assertEqual(chemin, [])
+
+        def test_plus_long_chemin_branche_separe(self):
+            n0 = node(0, '', {}, {1: 1})
+            n1 = node(1, '', {0: 1}, {2: 1})
+            n2 = node(2, '', {3: 1, 1: 1}, {})
+            n3 = node(3, '', {4: 1}, {2: 1})
+            n4 = node(4, '', {}, {3: 1})
+            g = open_digraph([0], [], [n0, n1, n2, n3, n4])
+            g.is_well_formed()
+
+            longueur, chemin = g.plus_long_chemin(0, 3)
+            self.assertEqual(longueur, None)
+            self.assertEqual(chemin, [])
+        print('-------------fin des test tp7 8 djikstra....-----------------')
 
         def test_min_max_id(self):
             g = open_digraph([], [], [
