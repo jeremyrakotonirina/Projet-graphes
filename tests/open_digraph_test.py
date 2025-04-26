@@ -4,6 +4,7 @@ root=os.path.normpath(os.path.join(__file__, './../..'))
 sys.path.append(root)
 import unittest
 from modules.open_digraph import *
+from modules.bool_circ import *
 
 class InitTest(unittest.TestCase):
    
@@ -162,6 +163,222 @@ class MethodesDigraphTest(unittest.TestCase):
        
             G.add_output_node(1)
             G.is_well_formed()
+
+        def test_iparallel_and_parallel(self):
+            g1 = open_digraph([0], [1], [
+                node(0, "", {}, {1: 1}),
+                node(1, "", {0: 1}, {})
+            ])
+            g2 = open_digraph([0], [1], [
+                node(0, "", {}, {1: 1}),
+                node(1, "", {0: 1}, {})
+            ])
+
+            g1_copy = g1.copy()
+            g1_copy.iparallel(g2)
+
+            # test nombre de nœuds
+            self.assertEqual(len(g1_copy.get_nodes()), 4)
+            # test inputs et outputs
+            self.assertEqual(len(g1_copy.inputs), 2)
+            self.assertEqual(len(g1_copy.outputs), 2)
+            
+            # vérifier que chaque input pointe vers le bon output
+            children_0 = g1_copy.get_node_by_id(g1_copy.inputs[0]).get_children()
+            children_1 = g1_copy.get_node_by_id(g1_copy.inputs[1]).get_children()
+            self.assertEqual(list(children_0.values()), [1])
+            self.assertEqual(list(children_1.values()), [1])
+
+            g1 = open_digraph([0, 1], [4], [
+            node(0, "", {}, {2: 1}),
+            node(1, "", {}, {2: 1}),
+            node(2, "&", {0: 1, 1: 1}, {3: 1}),
+            node(3, "~", {2: 1}, {4: 1}),
+            node(4, "", {3: 1}, {})
+        ])
+        
+            g2 = open_digraph([5], [8], [
+                node(5, "", {}, {6: 1}),
+                node(6, "~", {5: 1}, {7: 1}),
+                node(7, "&", {6: 1, 6: 1}, {8: 1}),
+                node(8, "", {7: 1}, {})
+            ])
+            
+            g1_copy = g1.copy()
+            g1_copy.iparallel(g2)
+            
+            # Test nombre de nœuds
+            self.assertEqual(len(g1_copy.get_nodes()), 9)
+            # Test nombre d'inputs et outputs
+            self.assertEqual(len(g1_copy.inputs), 3)
+            self.assertEqual(len(g1_copy.outputs), 2)
+
+            # Vérifier les connexions de inputs
+            for input_id in g1_copy.inputs:
+                children = g1_copy.get_node_by_id(input_id).get_children()
+                self.assertTrue(len(children) >= 1)  # doit avoir au moins une sortie
+
+        def test_icompose_and_compose(self):
+            g1 = open_digraph([0], [1], [
+                node(0, "", {}, {1: 1}),
+                node(1, "", {0: 1}, {})
+            ])
+            g2 = open_digraph([0], [1], [
+                node(0, "", {}, {1: 1}),
+                node(1, "", {0: 1}, {})
+            ])
+
+            g1_copy = g1.copy()
+            g1_copy.icompose(g2)
+
+            # test structure
+            self.assertEqual(len(g1_copy.get_nodes()), 4)
+            print(g1_copy.get_id_node_map())
+            self.assertEqual(len(g1_copy.inputs), 1)
+            self.assertEqual(len(g1_copy.outputs), 1)
+
+            g1 = open_digraph([0], [4], [
+        node(0, "", {}, {1: 1}),
+        node(1, "&", {0: 1}, {2: 1}),
+        node(2, "|", {1: 1}, {3: 1}),
+        node(3, "~", {2: 1}, {4: 1}),
+        node(4, "", {3: 1}, {})
+    ])
+    
+            g2 = open_digraph([5], [6], [
+                node(5, "", {}, {6: 1}),
+                node(6, "", {5: 1}, {})
+            ])
+            
+            g1_copy = g1.copy()
+            g1_copy.icompose(g2)
+            
+            # Après composition séquentielle
+            self.assertEqual(len(g1_copy.get_nodes()), 7)
+            self.assertEqual(len(g1_copy.inputs), 1)
+            self.assertEqual(len(g1_copy.outputs), 1)
+
+            # Vérifier la connexion entre g2.output -> g1.input
+            composed_input = g1_copy.inputs[0]
+            composed_output = g1_copy.outputs[0]
+            children_input = g1_copy.get_node_by_id(composed_input).get_children()
+            parents_output = g1_copy.get_node_by_id(composed_output).get_parents()
+
+            # Entrée doit avoir un enfant
+            self.assertTrue(len(children_input) > 0)
+            # Sortie doit avoir un parent
+            self.assertTrue(len(parents_output) > 0)
+
+            
+
+        def test_identity(self):
+            g = open_digraph.identity(3)
+            self.assertEqual(len(g.get_nodes()), 6)
+
+            for i in range(3):
+                in_node = g.get_node_by_id(i)
+                out_node = g.get_node_by_id(i + 3)
+
+                # test qu'un input pointe vers le bon output
+                self.assertEqual(list(in_node.get_children().keys()), [i + 3])
+                self.assertEqual(list(out_node.get_parents().keys()), [i])
+
+        def test_connected_components(self):
+            g = open_digraph([], [], [
+                node(0, "", {}, {1: 1}),
+                node(1, "", {0: 1}, {}),
+                node(2, "", {}, {3: 1}),
+                node(3, "", {2: 1}, {}),
+            ])
+
+            nb, comp_dict = g.connected_components()
+
+            self.assertEqual(nb, 2)
+            self.assertEqual(set(comp_dict.values()), {0, 1})
+
+            # Vérifie que 0 et 1 sont ensemble, 2 et 3 ensemble
+            self.assertEqual(comp_dict[0], comp_dict[1])
+            self.assertEqual(comp_dict[2], comp_dict[3])
+            self.assertNotEqual(comp_dict[0], comp_dict[2])
+
+            g = open_digraph([], [], [
+            node(0, "", {}, {1: 1}),
+            node(1, "", {0: 1}, {}),
+            node(2, "", {}, {3: 1}),
+            node(3, "", {2: 1}, {4: 1}),
+            node(4, "", {3: 1}, {}),
+            node(5, "", {}, {})
+            ])
+
+            nb_comp, id_to_comp = g.connected_components()
+
+            # 3 composantes
+            self.assertEqual(nb_comp, 3)
+
+            # Chaque noeud dans la bonne composante
+            comp0 = id_to_comp[0]
+            comp1 = id_to_comp[2]
+            comp2 = id_to_comp[5]
+            self.assertEqual(id_to_comp[1], comp0)
+            self.assertEqual(id_to_comp[3], comp1)
+            self.assertEqual(id_to_comp[4], comp1)
+
+            # Vérifie que chaque composante est cohérente
+            self.assertNotEqual(comp0, comp1)
+            self.assertNotEqual(comp0, comp2)
+            self.assertNotEqual(comp1, comp2)
+
+        def test_connected_components_subgraphs(self):
+            g = open_digraph([], [], [
+                node(0, "", {}, {1: 1}),
+                node(1, "", {0: 1}, {}),
+                node(2, "", {}, {3: 1}),
+                node(3, "", {2: 1}, {}),
+            ])
+
+            subgraphs = g.connected_components_subgraphs()
+            self.assertEqual(len(subgraphs), 2)
+
+            ids_sets = [set(node.get_id() for node in sg.get_nodes()) for sg in subgraphs]
+
+            # les deux sous-graphes doivent avoir {0,1} et {2,3}
+            self.assertIn({0,1}, ids_sets)
+            self.assertIn({2,3}, ids_sets)
+
+            g = open_digraph([0,3], [2,4], [
+            node(0, "", {}, {1: 1}),
+            node(1, "", {0: 1}, {2: 1}),
+            node(2, "", {1: 1}, {}),
+            node(3, "", {}, {4: 1}),
+            node(4, "", {3: 1}, {})
+            ])
+
+            subgraphs = g.connected_components_subgraphs()
+
+            # On doit avoir 2 sous-graphes
+            self.assertEqual(len(subgraphs), 2)
+
+            # Vérifie que chaque sous-graphe a la bonne structure
+            for subg in subgraphs:
+                # Tous les noeuds doivent être connectés
+                nb_comp, _ = subg.connected_components()
+                self.assertEqual(nb_comp, 1)
+
+            # Vérifie que les inputs/outputs sont corrects
+            all_inputs = [id for sg in subgraphs for id in sg.get_input_ids()]
+            all_outputs = [id for sg in subgraphs for id in sg.get_output_ids()]
+
+            self.assertCountEqual(all_inputs, [0,3])
+            self.assertCountEqual(all_outputs, [2,4])
+
+            # Vérifie aussi que liaisons sont cohérentes à l'intérieur
+            for sg in subgraphs:
+                for nid in sg.get_id_node_map():
+                    noeud = sg.get_node_by_id(nid)
+                    for child_id in noeud.get_children():
+                        self.assertIn(child_id, sg.get_id_node_map())
+                    for parent_id in noeud.get_parents():
+                        self.assertIn(parent_id, sg.get_id_node_map())
         
         print('----------------------------test de methode dikstra--------------------------------')
         def test_djikstra(self):
