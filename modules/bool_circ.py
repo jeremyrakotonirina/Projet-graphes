@@ -48,7 +48,40 @@ class bool_circ(open_digraph):
             elif noeud.get_label() == "~":
                 if noeud.indegree() != 1 or noeud.outdegree() != 1:
                     raise Exception ("un noeud NON ne respecte pas 1 entrée et 1 sortie")
+                    
+    @classmethod
+    def parse_parentheses(cls, s):
+        """
+        Transforme une chaîne s complètement parenthésée en bool_circ 
+        """
+        g = bool_circ(open_digraph.empty())  # Circuit vide
+        current_node = g.add_node('', {}, {})  # Création du premier noeud vide
+        s2 = ''
 
+        for char in s:
+            if char == '(': 
+                # Ajouter le label accumulé au current_node
+                noeud=g.get_node_by_id(current_node)
+                noeud.set_label(noeud.get_label()+s2)
+                # Créer un nouveau parent
+                parent = g.add_node('', {}, {current_node: 1})
+                noeud.add_parent_id(parent, 1)
+                current_node = parent
+                s2 = ''
+            elif char == ')':
+                # Ajouter le label accumulé au current_node
+                noeud=g.get_node_by_id(current_node)
+                noeud.set_label(noeud.get_label()+s2)
+                # Remonter : current_node devient son unique fils
+                children = list(noeud.get_children())
+                if len(children)>1:
+                    raise Exception("il y a plusieurs enfants")  # Normalement il n'y a qu'un fils
+                current_node = children[0]
+                s2 = ''
+            else:
+                s2 += char
+
+        return g
 
         
         
