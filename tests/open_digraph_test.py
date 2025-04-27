@@ -233,7 +233,6 @@ class MethodesDigraphTest(unittest.TestCase):
 
             # test structure
             self.assertEqual(len(g1_copy.get_nodes()), 4)
-            print(g1_copy.get_id_node_map())
             self.assertEqual(len(g1_copy.inputs), 1)
             self.assertEqual(len(g1_copy.outputs), 1)
 
