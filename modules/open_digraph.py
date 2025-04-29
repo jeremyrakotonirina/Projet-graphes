@@ -190,7 +190,36 @@ class open_digraph(MethodesGettersSetters, MethodesAjout, MethodesSuppression,
     
         return matrice
     
-    
+    def fusion_nodes(self, id1, id2, label_mode="id1"):
+        node1=self.get_node_by_id(id1)
+        node2=self.get_node_by_id(id2)
+
+        if label_mode == "id1": #choix du label
+            label=node1.get_label()
+        else:
+            label=node2.get_label()
+        
+        #on relie les éléments de node 2 vers node 1
+        parents_copy = dict(node2.get_parents())
+        for pid, mult in parents_copy.items():
+            self.get_node_by_id(pid).add_child_id(id1, mult)
+            node1.add_parent_id(pid, mult)
+
+        children_copy = dict(node2.get_children())
+        for cid, mult in children_copy.items():
+            self.get_node_by_id(cid).add_parent_id(id1, mult)
+            node1.add_child_id(cid, mult)
+        
+        #supprimer node 2
+        self.remove_node_by_id(id2) #enlève juste les arêtes
+        del self.nodes[id2]
+        if id2 in self.inputs:
+            self.inputs.remove(id2)
+        elif id2 in self.outputs:
+            self.outputs.remove(id2)
+        
+        node1.set_label(label) #mise à jour label
+
     
     
 def graph_from_adjacency_matrix(matrice):
