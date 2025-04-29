@@ -48,7 +48,7 @@ class bool_circ(open_digraph):
             elif noeud.get_label() == "~":
                 if noeud.indegree() != 1 or noeud.outdegree() != 1:
                     raise Exception ("un noeud NON ne respecte pas 1 entrée et 1 sortie")
-                    
+
     @classmethod
     def parse_parentheses(cls, s):
         """
@@ -81,8 +81,24 @@ class bool_circ(open_digraph):
             else:
                 s2 += char
 
-        return g
+        label_to_ids = {} #dictionnaire {label:[id_noeud]}
+        for node in g.get_nodes():
+            lbl = node.get_label()
+            if lbl.startswith("x"):  # On suppose que toutes les variables commencent par "x"
+                if lbl not in label_to_ids:
+                    label_to_ids[lbl] = []
+                label_to_ids[lbl].append(node.get_id())
 
+        inputs = []
+        for lbl, ids in label_to_ids.items():
+            main_id = ids[0]
+            for other_id in ids[1:]:
+                g.fusion_nodes(main_id, other_id)  # On fusionne tous les noeuds de même label
+            g.get_node_by_id(main_id).set_label('')  # on le met en noeud 'copie'
+            inputs.append(lbl)
+
+        g.set_inputs([ids[0] for ids in label_to_ids.values()]) #on récupère les inputs
+        return g, inputs
         
         
 
