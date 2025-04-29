@@ -106,12 +106,14 @@ class MethodesCircuitsBooleens:
         """
         Renvoie une liste d'open_digraph correspondant aux composantes connexes.
         """
-        _, comp_dict = self.connected_components()
+        a , comp_dict = self.connected_components()
 
         # Regroupement des noeuds par composante
         comp_to_ids = {}
         for nid, cid in comp_dict.items():
-            comp_to_ids.setdefault(cid, []).append(nid)
+            if cid not in comp_to_ids:
+                comp_to_ids[cid]=[]
+            comp_to_ids[cid].append(nid)
 
         subgraphs = []
         for ids in comp_to_ids.values():
