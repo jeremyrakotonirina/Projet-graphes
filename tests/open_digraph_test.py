@@ -1005,7 +1005,7 @@ class testMatrice(unittest.TestCase):
                 print(f"\nTest random graph avec form: {form}")
                 G = G.random(n, bound, inputs=2, outputs=2, form=form)#graphe d'origine
                 print(G)
-                G.display()
+                #G.display()
                 adjacency = G.adjacency_matrix() #matrice du graphe
                 afficher_matrice(adjacency)
               
@@ -1104,13 +1104,13 @@ class TestBoolCirc(unittest.TestCase):
             node(3, "", {2: 1}, {})
         ])
         bc = bool_circ(g)
-        self.assertTrue(True) 
-        
+        self.assertTrue(True)
+
     def test_parse_parentheses(self):
         s = "((x0)&((x1)&(x2)))|((x1)&(~(x2)))"
-        g = bool_circ.parse_parentheses(s)
-        print(g)    
-        g.display()                     
+        g,f = bool_circ.parse_parentheses(s)
+        print(f)    
+        g.display()                 
 
 if __name__ == '__main__':
     unittest.main()
