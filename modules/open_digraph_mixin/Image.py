@@ -15,8 +15,19 @@ class MethodesImage:
     def save_as_dot_file(self, path: str, verbose=False):
         with open(path, "w") as file:
             file.write("digraph G {\n")
+            
             for node in self.nodes.values():
-                file.write(f'\t{node.get_id()} [label="{node.get_label()}"];\n')
+                nid = node.get_id()
+                label = node.get_label()
+
+                # Détermine le style du nœud
+                if nid in self.get_input_ids():
+                    file.write(f'\t{nid} [label="{label}", style=filled, fillcolor=lightblue];\n')
+                elif nid in self.get_output_ids():
+                    file.write(f'\t{nid} [label="{label}", style=filled, fillcolor=lightcoral];\n')
+                else:
+                    file.write(f'\t{nid} [label="{label}"];\n')
+
             index_couleur = 0
             for node in self.nodes.values():
                 col = couleurs_specifiques[index_couleur % couleurs_specifiques_taille]
