@@ -1115,7 +1115,84 @@ class TestBoolCirc(unittest.TestCase):
     def test_parse_parentheses_plusieurs(self):
         s= "((x0)&((x1)&(x2)))|((x1)&(~(x2)))" 
         g=bool_circ.parse_parentheses("((x0)&((x1)&(x2)))|((x1)&(~(x2)))" , "((x0)&(~(x1)))|(x2)")  
-        g[0].display()     
+        g[0].display() 
+
+    #-----------------------------------TEST TD10--------------------------------
+    def test_circuit_valide(self):
+        """random_bool_circ doit renvoyer une instance valide et acyicycle."""
+        circuit = bool_circ.random_bool_circ(7, 1, nb_inputs=4, nb_outputs=2)
+        print('voici le circuit obtenu apres transformation : ')
+        #circuit.display()
+        print(circuit)
+        self.assertIsInstance(circuit, bool_circ)
+        self.assertFalse(circuit.is_cyclic())
+
+    def test_degre_debool_circ(self):
+        """Aucun noeud ne doit avoir à la fois fan-in >1 et fan-out >1."""
+        circuit = bool_circ.random_bool_circ(8, 1, nb_inputs=1, nb_outputs=2)
+        for noeud in circuit.get_nodes():
+            self.assertFalse(noeud.indegree() > 1 and noeud.outdegree() > 1)
+
+    def test_random_inputs__outputs(self):
+        """Chaque input doit avoir indegree=0 et chaque output outdegree=0."""
+        circuit = bool_circ.random_bool_circ(9, 1, nb_inputs=1, nb_outputs=1)
+        for ident in circuit.inputs:
+            noeud = circuit.get_node_by_id(ident)
+            self.assertEqual(noeud.indegree(), 0,)
+        for ident in circuit.outputs:
+            noeud = circuit.get_node_by_id(ident)
+            self.assertEqual(noeud.outdegree(), 0,)
+
+    def test_adder0(self):
+        """adder(0) doit construire un full‐adder 1-bit correct."""
+        c = bool_circ.adder(0)
+        # type, acyclicité et forme
+        self.assertIsInstance(c, bool_circ)
+        self.assertEqual(len(c.inputs), 3)
+
+    def test_adder1(self):
+        """adder(1) doit construire un ripple‐carry 2-bits correct."""
+        c = bool_circ.adder(1)
+        self.assertIsInstance(c, bool_circ)
+        self.assertEqual(len(c.inputs), 5)
+
+    def test_half_adder0(self):
+        """half_adder(0) doit construire un demi-adder 1-bit."""
+        c = bool_circ.half_adder(0)
+        # devrait être un bool_circ valide
+        self.assertIsInstance(c, bool_circ)
+        self.assertFalse(c.is_cyclic())
+        # 2 entrées : A0, B0 (Cin est forcé à 0 et retiré des inputs)
+        self.assertEqual(len(c.inputs), 2)
+        labels_in = [c.get_node_by_id(i).get_label() for i in c.inputs]
+        self.assertCountEqual(labels_in, ["A0", "B0"])
+        # 2 sorties : S0, Cout
+        self.assertEqual(len(c.outputs), 2)
+        labels_out = [c.get_node_by_id(o).get_label() for o in c.outputs]
+        self.assertCountEqual(labels_out, ["S0", "Cout"])
+        # vérifier que l’ancien port Cin est désormais interne et branché sur “0”
+        cin_nodes = [n for n in c.get_nodes() if n.get_label() == "Cin"]
+        self.assertEqual(len(cin_nodes), 1)
+        cin = cin_nodes[0]
+        self.assertEqual(cin.indegree(), 1)
+        parent_id = next(iter(cin.get_parents()))
+        self.assertEqual(c.get_node_by_id(parent_id).get_label(), "0")
+
+    def test_half_adder1(self):
+        """half_adder(1) doit construire un demi-adder 2-bits"""
+        c = bool_circ.half_adder(1)
+        self.assertIsInstance(c, bool_circ)
+        self.assertFalse(c.is_cyclic())
+        # adder(1) a 5 inputs, on retire Cin0 → on doit en avoir 4 : A0,B0,A1,B1
+        self.assertEqual(len(c.inputs), 4)
+        labels_in = [c.get_node_by_id(i).get_label() for i in c.inputs]
+        self.assertCountEqual(labels_in, ["A0", "B0", "A1", "B1"])
+        # adder(1) a 3 outputs, inchangés : S0, S1, Cout
+        self.assertEqual(len(c.outputs), 3)
+        labels_out = [c.get_node_by_id(o).get_label() for o in c.outputs]
+        self.assertCountEqual(labels_out, ["S0", "S1", "Cout"])
+        # s’assurer qu’il n’y a plus d’entrée nommée “Cin”
+        self.assertNotIn("Cin", labels_in)    
 
 if __name__ == '__main__':
     unittest.main()
