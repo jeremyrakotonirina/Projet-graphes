@@ -42,7 +42,7 @@ class bool_circ(open_digraph):
             if noeud.get_label() == "":
                 if noeud.indegree() != 1 :
                     raise Exception ("un noeud copie n'a pas de degré entrant de 1")
-            elif noeud.get_label() == "&" or noeud.get_label() == "|":
+            elif noeud.get_label() == "&" or noeud.get_label() == "|" or noeud.get_label() == '^':
                 if noeud.outdegree() != 1 :
                     raise Exception ("un noeud ET ou OU n'a pas de degré sortant de 1")
             elif noeud.get_label() == "~":
@@ -50,36 +50,37 @@ class bool_circ(open_digraph):
                     raise Exception ("un noeud NON ne respecte pas 1 entrée et 1 sortie")
 
     @classmethod
-    def parse_parentheses(cls, s):
+    def parse_parentheses(cls, *args):
         """
         Transforme une chaîne s complètement parenthésée en bool_circ 
         """
         g = bool_circ(open_digraph.empty())  # Circuit vide
-        current_node = g.add_node('', {}, {})  # Création du premier noeud vide
-        s2 = ''
 
-        for char in s:
-            if char == '(': 
-                # Ajouter le label accumulé au current_node
-                noeud=g.get_node_by_id(current_node)
-                noeud.set_label(noeud.get_label()+s2)
-                # Créer un nouveau parent
-                parent = g.add_node('', {}, {current_node: 1})
-                noeud.add_parent_id(parent, 1)
-                current_node = parent
-                s2 = ''
-            elif char == ')':
-                # Ajouter le label accumulé au current_node
-                noeud=g.get_node_by_id(current_node)
-                noeud.set_label(noeud.get_label()+s2)
-                # Remonter : current_node devient son unique fils
-                children = list(noeud.get_children())
-                if len(children)>1:
-                    raise Exception("il y a plusieurs enfants")  # Normalement il n'y a qu'un fils
-                current_node = children[0]
-                s2 = ''
-            else:
-                s2 += char
+        for chaine in args:
+            current_node = g.add_node('', {}, {})  # Création du premier noeud vide
+            s2 = ''
+            for char in chaine:
+                if char == '(': 
+                    # Ajouter le label accumulé au current_node
+                    noeud=g.get_node_by_id(current_node)
+                    noeud.set_label(noeud.get_label()+s2)
+                    # Créer un nouveau parent
+                    parent = g.add_node('', {}, {current_node: 1})
+                    noeud.add_parent_id(parent, 1)
+                    current_node = parent
+                    s2 = ''
+                elif char == ')':
+                    # Ajouter le label accumulé au current_node
+                    noeud=g.get_node_by_id(current_node)
+                    noeud.set_label(noeud.get_label()+s2)
+                    # Remonter : current_node devient son unique fils
+                    children = list(noeud.get_children())
+                    if len(children)>1:
+                        raise Exception("il y a plusieurs enfants")  # Normalement il n'y a qu'un fils
+                    current_node = children[0]
+                    s2 = ''
+                else:
+                    s2 += char
 
         label_to_ids = {} #dictionnaire {label:[id_noeud]}
         for node in g.get_nodes():
@@ -99,6 +100,10 @@ class bool_circ(open_digraph):
 
         g.set_inputs([ids[0] for ids in label_to_ids.values()]) #on récupère les inputs
         return g, inputs
+    
+   
+            
+        
         
         
 
