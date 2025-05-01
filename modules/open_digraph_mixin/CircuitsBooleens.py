@@ -88,7 +88,7 @@ class MethodesCircuitsBooleens:
         for node in self.get_nodes():
             nid = node.get_id()
             if nid not in seen:
-                # BFS/DFS pour parcourir une composante connexe
+                # parcourir les composante connexe
                 stack = [nid]
                 while stack:
                     current = stack.pop()
@@ -96,8 +96,8 @@ class MethodesCircuitsBooleens:
                         seen.add(current)
                         comp_dict[current] = comp_id
                         node = self.get_node_by_id(current)
-                        neighbors = list(node.get_children()) + list(node.get_parents())
-                        stack.extend(neighbors)
+                        voisins = list(node.get_children()) + list(node.get_parents())
+                        stack.extend(voisins)
                 comp_id += 1
 
         return comp_id, comp_dict
