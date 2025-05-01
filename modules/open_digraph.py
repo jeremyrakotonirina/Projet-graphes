@@ -101,34 +101,36 @@ class open_digraph(MethodesGettersSetters, MethodesAjout, MethodesSuppression,
             """
         
             if form == "free":
-                graphe = graph_from_adjacency_matrix(random_int_matrix(n, bound, False))
+                graphe = graph_from_adjacency_matrix2(random_int_matrix(n, bound, False))
             elif form == "DAG":
-                graphe = graph_from_adjacency_matrix(random_triangular_int_matrix(n, bound, False))
+                graphe = graph_from_adjacency_matrix2(random_triangular_int_matrix(n, bound, False))
             elif form == "oriented":
-                graphe = graph_from_adjacency_matrix(random_oriented_int_matrix(n, bound, False))
+                graphe = graph_from_adjacency_matrix2(random_oriented_int_matrix(n, bound, False))
             elif form == "undirected":
-                graphe = graph_from_adjacency_matrix(random_symetric_int_matrix(n, bound, False))
+                graphe = graph_from_adjacency_matrix2(random_symetric_int_matrix(n, bound, False))
             elif form == "loop-free":
-                graphe = graph_from_adjacency_matrix(random_int_matrix(n, bound, True))
+                graphe = graph_from_adjacency_matrix2(random_int_matrix(n, bound, True))
             elif form == "loop-free DAG":
-                graphe = graph_from_adjacency_matrix(random_triangular_int_matrix(n, bound, True))
+                graphe = graph_from_adjacency_matrix2(random_triangular_int_matrix(n, bound, True))
             elif form == "loop-free oriented":
-                graphe = graph_from_adjacency_matrix(random_oriented_int_matrix(n, bound, True))
+                graphe = graph_from_adjacency_matrix2(random_oriented_int_matrix(n, bound, True))
             elif form == "loop-free undirected":
-                graphe = graph_from_adjacency_matrix(random_symetric_int_matrix(n, bound, True))
+                graphe = graph_from_adjacency_matrix2(random_symetric_int_matrix(n, bound, True))
             else:
                 raise ValueError(" Le paramètre form est mal donné, regarder la documentation pour plus d'info sur le paramètre ")
         
-            id_noeuds=graphe.get_id_node_map().keys() #liste d'id de tous les noeuds
-            id_entrees=random.sample(list(id_noeuds), k=inputs) #séléctionne k éléments de id_noeuds sans répétition
-            id_sorties=random.sample(list(id_noeuds), k=outputs)
-
+            id_noeuds=list(graphe.get_id_node_map().keys()) #liste d'id de tous les noeuds internes, on fait une copie pour ne pas avoir des outputs pointant vers des noeuds internes
+            
+            id_entrees = random.sample(list(id_noeuds), k=inputs) #séléctionne k éléments de id_noeuds sans répétition
             for i in id_entrees:
                 graphe.add_input_node(i)
+
+
         
+            id_sorties=random.sample(list(id_noeuds), k=outputs)
             for i in id_sorties:
                 graphe.add_output_node(i)
-            
+    
             graphe.is_well_formed() #vérifie que graphe bien formé
             return graphe
     
@@ -219,11 +221,14 @@ class open_digraph(MethodesGettersSetters, MethodesAjout, MethodesSuppression,
             self.outputs.remove(id2)
         
         node1.set_label(label) #mise à jour label
+    
+    
+    
 
     
     
 def graph_from_adjacency_matrix(matrice):
-    """ renvoi le graphe represente par la matrice donnee en parametres"""
+    """ renvoi le graphe represente par la matrice donnee en parametres, avec des inputs et outputs"""
     G = open_digraph([], [], [])
     N=len(matrice)
     for i in range(N):
@@ -244,5 +249,16 @@ def graph_from_adjacency_matrix(matrice):
             G.add_input_id(i)
     return G    
 
-
+def graph_from_adjacency_matrix2(matrice):
+    """ renvoi le graphe represente par la matrice donnee en parametres, sans inputs et outputs"""
+    G = open_digraph([], [], [])
+    N=len(matrice)
+    for i in range(N):
+        G.add_node(label="v"+str(i)) #une matrice de taille N a N noeuds
+    for i in range(N):
+        for j in range(N):
+            if matrice[i][j] != 0:
+                for _ in range (matrice[i][j]): #la multiplicité peut être >1
+                    G.add_edge(i,j) #on a supposé que le noeud de ligne[i] a pour id i
+    return G
 
