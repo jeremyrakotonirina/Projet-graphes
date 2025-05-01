@@ -1110,7 +1110,12 @@ class TestBoolCirc(unittest.TestCase):
         s = "((x0)&((x1)&(x2)))|((x1)&(~(x2)))"
         g,f = bool_circ.parse_parentheses(s)
         print(f)    
-        g.display()                 
+        #g.display()   
+
+    def test_parse_parentheses_plusieurs(self):
+        s= "((x0)&((x1)&(x2)))|((x1)&(~(x2)))" 
+        g=bool_circ.parse_parentheses("((x0)&((x1)&(x2)))|((x1)&(~(x2)))" , "((x0)&(~(x1)))|(x2)")  
+        g[0].display()     
 
 if __name__ == '__main__':
     unittest.main()
