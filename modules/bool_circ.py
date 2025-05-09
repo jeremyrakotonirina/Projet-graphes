@@ -48,6 +48,10 @@ class bool_circ(open_digraph):
             elif noeud.get_label() == "~":
                 if noeud.indegree() != 1 or noeud.outdegree() != 1:
                     raise Exception ("un noeud NON ne respecte pas 1 entrée et 1 sortie")
+            elif noeud.get_label() == "0" or noeud.get_label() == "1" : 
+                if noeud.outdegree() != 1 or noeud.indegree() !=0 : 
+                    raise Exception(f"le noeud {noeud.get_label()} doit avoir indegree=0 et outdegree=1")
+    
 
     @classmethod
     def parse_parentheses(cls, *args):
@@ -98,150 +102,100 @@ class bool_circ(open_digraph):
             g.get_node_by_id(main_id).set_label('')  # on le met en noeud 'copie'
             inputs.append(lbl)
 
-        g.set_inputs([ids[0] for ids in label_to_ids.values()]) #on récupère les inputs
+        g.set_input_ids([ids[0] for ids in label_to_ids.values()]) #on récupère les inputs
         return g, inputs
 
+    
     @classmethod
-    def random_bool_circ(cls,
-                         n: int,
-                         bound: int,
-                         nb_inputs: int = None,
-                         nb_outputs: int = None,
+    def random_bool_circ(cls,n: int,
+                         borne: int,
+                         nb_entrees: int = None,
+                         nb_sorties: int = None,
                          operateurs_binaires=('&', '|', '^'),
                          operateurs_unaires=('~',)):
         """
-        Génère un circuit booléen aléatoire :
-         - n            : nombre de noeuds internes
-         - bound        : multiplicité max des arêtes
-         - nb_inputs    : nombre d'entrées souhaité (None → pas d'ajustement)
-         - nb_outputs   : nombre de sorties souhaité (None → pas d'ajustement)
-         - operateurs_binaires : labels pour portes binaires
-         - operateurs_unaires  : labels pour portes unaires
+        Génère un circuit booléen aléatoire : n noeuds internes, multiplicité max borne.
         """
-        # 0) Validation des opérateurs unaire
         if not operateurs_unaires:
-            raise IndexError("liste des operateurs unaires vide")
+            raise IndexError("Liste des opérateurs unaires vide")
 
-        # 1) Générer le squelette DAG
-        base = open_digraph.empty().random(
-            n, bound,
-            inputs=0,
-            outputs=0,
-            form="loop-free DAG"
-        )
-        print('voici le gaphe du nv circuit avant ')
-        print(base)
-        #base.display()
+        # Génération d'un DAG sans boucle
+        graphe = open_digraph.empty().random(n, borne, inputs=0, outputs=0, form="loop-free DAG")
+        print('Graphe initial :', graphe)
 
-        # 2) Créer de vrais inputs/outputs là où il n'y en a pas
-        for u in list(base.get_nodes()):
-            if u.indegree() == 0:
-                base.add_input_node(u.id)
-            if u.outdegree() == 0:
-                base.add_output_node(u.id)
+        for nd in list(graphe.get_nodes()):
+            if nd.indegree() == 0:
+                graphe.add_input_node(nd.id)
+            if nd.outdegree() == 0:
+                graphe.add_output_node(nd.id)
 
-        # ——— 2bis) Ajuster au nombre voulu d'entrées/sorties ———
-        # Entrées
-        if nb_inputs is not None:
-            # augmenter si besoin
-            while len(base.inputs) < nb_inputs:
-                # choisir un noeud non-input
-                candidats = [u.id for u in base.get_nodes() if u.id not in base.inputs]
+        if nb_entrees is not None:
+            while len(graphe.inputs) < nb_entrees:
+                candidats = [nd.id for nd in graphe.get_nodes() if nd.id not in graphe.inputs]
                 if not candidats:
                     break
                 cible = random.choice(candidats)
-                base.add_input_node(cible)
-            # diminuer si trop d'inputs
-            while len(base.inputs) > nb_inputs:
-                # fusionner deux inputs au hasard
-                p, q = random.sample(base.inputs, 2)
-                new_in = base.add_node(label="")
-                base.add_input_id(new_in)
-                base.add_edge(new_in, p)
-                base.add_edge(new_in, q)
-                base.inputs.remove(p)
-                base.inputs.remove(q)
+                graphe.add_input_node(cible)
+            while len(graphe.inputs) > nb_entrees:
+                p, q = random.sample(graphe.inputs, 2)
+                nouvel_entree = graphe.add_node(label="")
+                graphe.add_input_id(nouvel_entree)
+                graphe.add_edge(nouvel_entree, p)
+                graphe.add_edge(nouvel_entree, q)
+                graphe.inputs.remove(p)
+                graphe.inputs.remove(q)
 
-        # Sorties
-        if nb_outputs is not None:
-            # augmenter si besoin
-            while len(base.outputs) < nb_outputs:
-                candidats = [u.id for u in base.get_nodes() if u.id not in base.outputs]
+        if nb_sorties is not None:
+            while len(graphe.outputs) < nb_sorties:
+                candidats = [nd.id for nd in graphe.get_nodes() if nd.id not in graphe.outputs]
                 if not candidats:
                     break
                 cible = random.choice(candidats)
-                base.add_output_node(cible)
-            # diminuer si trop d'outputs
-            while len(base.outputs) > nb_outputs:
-                p, q = random.sample(base.outputs, 2)
-                new_out = base.add_node(label="")
-                base.add_output_id(new_out)
-                base.add_edge(p, new_out)
-                base.add_edge(q, new_out)
-                base.outputs.remove(p)
-                base.outputs.remove(q)
-        # ————————————————————————————————————————————————
+                graphe.add_output_node(cible)
+            while len(graphe.outputs) > nb_sorties:
+                p, q = random.sample(graphe.outputs, 2)
+                nouvelle_sortie = graphe.add_node(label="")
+                graphe.add_output_id(nouvelle_sortie)
+                graphe.add_edge(p, nouvelle_sortie)
+                graphe.add_edge(q, nouvelle_sortie)
+                graphe.outputs.remove(p)
+                graphe.outputs.remove(q)
 
-        # 3) Initialiser les labels internes
-        for u in base.get_nodes():
-            if u.indegree() > 0 and u.outdegree() > 0:
-                u.set_label("")    # nœud interne
+        for nd in graphe.get_nodes():
+            if nd.indegree() > 0 and nd.outdegree() > 0:
+                nd.set_label("")
             else:
-                u.set_label("  ")  # dummy input/output
+                nd.set_label("  ")
 
-        # 4) Étiquetage et split
-        for u in list(base.get_nodes()):
-            d_in, d_out = u.indegree(), u.outdegree()
-            parents = list(u.get_parents().keys())
-            enfants = list(u.get_children().keys())
+        for nd in list(graphe.get_nodes()):
+            deg_entree, deg_sortie = nd.indegree(), nd.outdegree()
+            parents = list(nd.get_parents().keys())
+            enfants = list(nd.get_children().keys())
 
-            # porte unaire
-            if d_in == 1 and d_out == 1:
-                u.set_label(random.choice(operateurs_unaires))
-
-            # noeud copie (1 entrée, >1 sorties) – on laisse le label vide
-            elif d_in == 1 and d_out > 1:
-                continue
-
-            # porte binaire
-            elif d_in > 1 and d_out == 1:
-                u.set_label(random.choice(operateurs_binaires))
-
-            # split fan-in>1 et fan-out>1
-            elif d_in > 1 and d_out > 1:
-                # retirer toutes les arêtes parallèles
+            if deg_entree == 1 and deg_sortie == 1:
+                nd.set_label(random.choice(operateurs_unaires))
+            elif deg_entree > 1 and deg_sortie == 1:
+                nd.set_label(random.choice(operateurs_binaires))
+            elif deg_entree > 1 and deg_sortie > 1:
                 for p in parents:
-                    base.remove_several_parallel_edges((p, u.id))
+                    graphe.remove_several_parallel_edges((p, nd.id))
                 for c in enfants:
-                    base.remove_several_parallel_edges((u.id, c))
-                # créer le noeud opérateur binaire
-                u_op = base.add_node(label=random.choice(operateurs_binaires))
-                # reconnecter parents → u_op
+                    graphe.remove_several_parallel_edges((nd.id, c))
+                op_noeud = graphe.add_node(label=random.choice(operateurs_binaires))
                 for p in parents:
-                    base.add_edge(p, u_op)
-                # reconnecter u_op → u
-                base.add_edge(u_op, u.id)
-                # reconnecter u → anciens enfants
+                    graphe.add_edge(p, op_noeud)
+                graphe.add_edge(op_noeud, nd.id)
                 for c in enfants:
-                    base.add_edge(u.id, c)
+                    graphe.add_edge(nd.id, c)
 
-        # 5) Retourner l’instance validée (vérifie la forme)
-        return cls(base)
+        return cls(graphe)
     
     
     
     @classmethod
-    def adder(cls, n: int) -> "bool_circ":
-        """
-        Construire récursivement Adder_n :
-        - n == 0 : full-adder 1-bit
-        - n > 0 : ripple carry de deux Adder_{n-1}, avec renommage des indices
-        """
-        # --- Cas de base : full-adder 1-bit ---
+    def adder(cls, n: int):
         if n == 0:
             g = open_digraph.empty()
-
-            # 1) Création des ports d’entrée
             id_Cin = g.add_node(label="Cin")
             id_A0  = g.add_node(label="A0")
             id_B0  = g.add_node(label="B0")
@@ -249,105 +203,806 @@ class bool_circ(open_digraph):
             g.add_input_id(id_A0)
             g.add_input_id(id_B0)
 
-            # 2) Chaîne de XOR pour S0 = (A0 ⊕ B0) ⊕ Cin
             xor1 = g.add_node(label="^")
             g.add_edge(id_A0, xor1); g.add_edge(id_B0, xor1)
-            xor2 = g.add_node(label="^")
-            g.add_edge(xor1, xor2); g.add_edge(id_Cin, xor2)
 
-            # 3) Sortie S0
+            and1 = g.add_node(label="&"); g.add_edge(id_A0, and1); g.add_edge(id_B0, and1)
+            copie1 = g.add_node(label=""); g.add_edge(xor1, copie1)
+            copie2 = g.add_node(label=""); g.add_edge(id_Cin, copie2)
+            and2 = g.add_node(label="&"); g.add_edge(copie1, and2); g.add_edge(copie2, and2)
+            xor2 = g.add_node(label="^"); g.add_edge(copie1, xor2); g.add_edge(copie2, xor2)
+
             id_S0 = g.add_node(label="S0")
             g.add_edge(xor2, id_S0)
             g.add_output_id(id_S0)
 
-            # 4) Trois AND pour les produits partiels
-            and1 = g.add_node(label="&"); g.add_edge(id_A0, and1); g.add_edge(id_B0, and1)
-            and2 = g.add_node(label="&"); g.add_edge(id_A0, and2); g.add_edge(id_Cin, and2)
-            and3 = g.add_node(label="&"); g.add_edge(id_B0, and3); g.add_edge(id_Cin, and3)
-
-            # 5) OR final pour la retenue Cout
             or1 = g.add_node(label="|")
-            g.add_edge(and1, or1); g.add_edge(and2, or1); g.add_edge(and3, or1)
+            g.add_edge(and1, or1); g.add_edge(and2, or1)
             id_Cout = g.add_node(label="Cout")
             g.add_edge(or1, id_Cout)
             g.add_output_id(id_Cout)
 
             return cls(g)
 
-        # --- Cas récursif : ripple carry de deux Adder_{n-1} ---
-        low  = cls.adder(n-1)
-        high = cls.adder(n-1)
+        else:
+            low = cls.adder(n - 1)
+            high = cls.adder(n - 1)
 
-        # nombre de bits gérés par chaque sous‐adder
-        m = (len(low.inputs) - 1) // 2
+            m = (len(low.inputs) - 1) // 2
 
-        # ── Renommage des ports du sous‐adder "high" ──
-        # high.inputs = [Cin_high, A0…A_{m-1}, B0…B_{m-1}]
-        cin_high_id, *rest = high.inputs
-        a_high_ids = rest[:m]
-        b_high_ids = rest[m:]
+            high_input_labels = ['Cin']
+            for j_idx in range(m):
+                high_input_labels.append(f"A{j_idx+m}")
+                high_input_labels.append(f"B{j_idx+m}")
+            for nid, lbl in zip(high.inputs, high_input_labels):
+                high.get_node_by_id(nid).set_label(lbl)
 
-        for j, aid in enumerate(a_high_ids):
-            high.get_node_by_id(aid).set_label(f"A{j + m}")
-        for j, bid in enumerate(b_high_ids):
-            high.get_node_by_id(bid).set_label(f"B{j + m}")
+            high_output_labels = [f"S{j+m}" for j in range(m)] + ["Cout"]
+            for nid, lbl in zip(high.outputs, high_output_labels):
+                high.get_node_by_id(nid).set_label(lbl)
 
-        # high.outputs = [S0…S_{m-1}, Cout_high]
-        s_high_ids = high.outputs[:-1]
-        for j, sid in enumerate(s_high_ids):
-            high.get_node_by_id(sid).set_label(f"S{j + m}")
+            high.get_node_by_id(high.inputs[0]).set_label("")  
 
-        # rendre "Cin_high" muet (noeud interne)
-        high.get_node_by_id(cin_high_id).set_label("")
+            comp = low.parallel(high)
 
-        # 1) Juxtaposition parallèle
-        comp = low.parallel(high)
+            cout_low = low.outputs[-1]
+            idxcin_high = len(low.inputs)
+            cinx= comp.inputs[idxcin_high]
+            comp.add_edge(cout_low, cinx)
 
-        # 2) Relier Cout_low → Cin_high
-        cout_low = low.outputs[-1]
-        idx_cin_high = len(low.inputs)
-        cin_high_in_comp = comp.inputs[idx_cin_high]
-        comp.add_edge(cout_low, cin_high_in_comp)
+            new_ins = comp.inputs.copy()
+            new_ins.pop(idxcin_high)
+            comp.set_input_ids(new_ins)
 
-        # 3) Retirer Cin_high des ports externes
-        new_ins = comp.inputs.copy()
-        new_ins.pop(idx_cin_high)
-        comp.set_inputs(new_ins)
+        
+            new_outs = comp.outputs.copy()
+            idxclo = len(low.outputs) - 1
+            new_outs.pop(idxclo)
+            comp.set_output_ids(new_outs)
 
-        # 4) Retirer Cout_low des sorties intermédiaires
-        new_outs = comp.outputs.copy()
-        idx_cout_low = len(low.outputs) - 1
-        new_outs.pop(idx_cout_low)
-        comp.set_outputs(new_outs)
+            return cls(comp)
 
-        return cls(comp)
 
     @classmethod
-    def half_adder(cls, n: int) -> "bool_circ":
+    def half_adder(cls, n: int) :
         """
-        On part de Adder_n, puis on remplace la retenue d’entrée initiale
+        On part de Adder_n, puis on remplace la retenue dentrée initiale
         (Cin du bit de poids faible) par une constante 0.
         """
         g = cls.adder(n)
 
-        # On récupère l’ID du port Cin (toujours en position 0 de la liste inputs)
-        id_cin0 = g.inputs[0]
+        
+        zero = g.get_node_by_id(g.inputs[0])
 
-        # On crée un noeud « 0 » et on le branche en lieu et place de l’input cin
-        zero = g.add_node(label="0")
-        g.add_edge(zero, id_cin0)
+        
+        zero.set_label("0")
 
-        # On retire Cin0 de la liste des entrées externes
-        new_ins = [i for i in g.inputs if i != id_cin0]
-        g.set_inputs(new_ins)
+
 
         return cls(g)
+    
+    @classmethod
+    def registre_entier(cls, value: int, size: int = 8):
+        """
+        Retourne un circuit qui produit en sortie la représentation binaire
+        de 'value' par rapoerr a 'size' bits
+        """
+        if value < 0 or value >= 2**size:
+            raise ValueError(f"Impossible dencoder {value} avec {size} bits.")
+        if size < 1:
+            raise ValueError(f"Impossible d’avoir une taille de registre < 1 : size = {size}")
+
+       
+        g = open_digraph.empty()
+
+     
+        bits = bin(value)[2:].zfill(size)  
+
+        
+        for b in bits:
+            const_id = g.add_node(label=b)       
+            g.add_output_node(const_id)          
+
+        return cls(g)
+    
+    def simplif_or_const(self, id_or: int, id_const: int) -> int:
+        """
+        Simplifie une porte OR qui a au moins un parent constant (0 ou 1), pour toute 
+
+        Arguments :
+            id_or     ID  OR
+            id_const ID  constant ("0" ou "1")
+
+        Retourne lID du noeud qui remplace OR (ou id_or si on garde la porte).
+        """
+        or_node = self.get_node_by_id(id_or)
+        parents = list(or_node.get_parents().keys())
+        others  = [p for p in parents if p != id_const]
+        lbl     = self.get_node_by_id(id_const).get_label()
+
+        if lbl == "1":
+            id_replace = id_const
+
+        else:  
+            if len(others) > 1:
+                self.remove_edge(id_const, id_or)
+                # supprimer 0 s’il n’a plus d’enfant
+                if not self.get_node_by_id(id_const).get_children():
+                    self.remove_node_by_id(id_const)
+                    del self.nodes[id_const]
+
+                return id_or
+
+            elif len(others) == 1:
+                id_replace = others[0]
+
+            # CAS 4 : fan-in = 1 (OR(0)) → on remplace par 0
+            else:
+                id_replace = id_const
+
+        # === À partir d’ici on supprime l’OR et on recâble ===
+
+        # 1) Recâbler toutes les sorties de OR vers id_replace
+        for child_id, mult in list(or_node.get_children().items()):
+            for _ in range(mult):
+                self.add_edge(id_replace, child_id)
+            for _ in range(mult):
+                self.remove_edge(id_or, child_id)
+
+        # 2) Supprimer toutes les arêtes d’entrée vers OR
+        for p in parents:
+            self.remove_edge(p, id_or)
+
+        # 3) Supprimer le nœud OR isolé
+        self.remove_node_by_id(id_or)
+        del self.nodes[id_or]
+
+        if lbl == "0" and id_replace != id_const:
+            # constant 0 n’est plus utilisé
+            if id_const in self.get_id_node_map() and not self.get_node_by_id(id_const).get_children():
+                self.remove_node_by_id(id_const)
+                del self.nodes[id_const]
+
+        return id_replace
+    
+
+    def simplify_copies_const(self, id_copy: int, id_const: int) -> int:
+        """
+        Simplifie un noeud de copie alimenté par une constante.
+        Pour chaque arc du noeud copie, on crée un nouveau
+        noeud constant identique et on le branche à lenfant.
+        Puis on supprime le nœud copie et, sil nest plus utilisé,
+        le noeud constant dorigine.
+        Retourne lID du constant dorigine (ou None si supprimé).
+        """
+        const = self.get_node_by_id(id_const)
+        lbl = const.get_label()
+        if lbl not in {'0', '1'}:
+            raise ValueError("id_const doit être '0' ou '1'")
+
+        copy = self.get_node_by_id(id_copy)
+        # pour chaque enfant et chaque multiplicité
+        for child_id, mult in list(copy.get_children().items()):
+            for _ in range(mult):
+                # on crée un nouveau constant et on le connecte
+                new_c = self.add_node(label=lbl)
+                self.add_edge(new_c, child_id)
+
+        # on enlève copie + ses arêtes
+        self.remove_node_by_id(id_copy)
+        del self.nodes[id_copy]
+
+        # si le constant d’origine n’a plus d’enfants, on l’enlève aussi
+        if not const.get_children():
+            self.remove_node_by_id(id_const)
+            del self.nodes[id_const]
+            return None
+
+        return id_const
 
     
+
+    def simplify_non_const(self, id_not: int, id_const: int) -> int:
+        """
+        Simplifie une porte NON  :
+
+        Args:
+            id_not    ID du neud NON 
+            id_const ID du noeud constant (étiquette '0' ou '1') en entrée de id_not
+        Retourne lID du noeud constant qui remplace la porte NON.
+        """
+        not_node = self.get_node_by_id(id_not)
+        if not_node.get_label() != "~":
+            raise ValueError("id_not doit être une porte NON (~)")
+
+        # on vérifie que id_const est bien le parent unique de la porte
+        parents = list(not_node.get_parents().keys())
+        if parents != [id_const]:
+            raise ValueError("id_const doit être l’unique parent de la porte NON")
+        
+        const_node = self.get_node_by_id(id_const)
+        lbl = const_node.get_label()
+        if lbl not in {"0", "1"}:
+            raise ValueError("id_const doit être un nœud constant '0' ou '1'")
+
+        # inversion de la constante
+        new_lbl = "1" if lbl == "0" else "0"
+        id_new_const = self.add_node(label=new_lbl)
+
+        # recâbler TOUS les enfants de la porte NOT vers ce nouveau constant
+        for child_id, mult in list(not_node.get_children().items()):
+            for _ in range(mult):
+                self.add_edge(id_new_const, child_id)
+
+        # supprimer la porte NOT et ses arêtes
+        # on retire d’abord l’arête const→not
+        self.remove_edge(id_const, id_not)
+        # puis on enlève le nœud NOT lui-même
+        self.remove_node_by_id(id_not)
+        del self.nodes[id_not]
+
+        # si l’ancien constant est devenu isolé, on le supprime aussi
+        if not const_node.get_children():
+            self.remove_node_by_id(id_const)
+            del self.nodes[id_const]
+
+        return id_new_const
+
+    def simplify_et_const(self, id_and: int, id_const: int) -> int:
+        """
+        Simplifie une porte ET (&) alimentée par une constante :
+
+        Args:
+            id_and    ID du noeuud ET (&)
+            id_const  ID du noeud constant ('0' ou '1') en entrée de la porte
+        Retourne lID duoeurd qui remplace la porte ET.
+        """
+        and_node = self.get_node_by_id(id_and)
+        if and_node.get_label() != "&":
+            raise ValueError("id_and doit être une porte ET (&)")
+
+        const_node = self.get_node_by_id(id_const)
+        lbl = const_node.get_label()
+        if lbl not in {"0", "1"}:
+            raise ValueError("id_const doit être un nœud constant '0' ou '1'")
+
+        parents = list(and_node.get_parents().keys())
+        others = [p for p in parents if p != id_const]
+
+        # CAS absorbant : présence d'un 0 → tout devient 0
+        if lbl == "0":
+            id_replace = id_const
+
+        # CAS neutre : 1 n'apporte rien
+        else:  # lbl == "1"
+            if len(others) > 1:
+                # on enlève juste l'arête 1 → AND
+                self.remove_edge(id_const, id_and)
+                if not const_node.get_children():
+                    self.remove_node_by_id(id_const)
+                    del self.nodes[id_const]
+                return id_and
+            elif len(others) == 1:
+                id_replace = others[0]
+            else:  # aucun autre parent (ET(1))
+                id_replace = id_const
+
+        # recâbler toutes les sorties de la porte ET vers id_replace
+        for child_id, mult in list(and_node.get_children().items()):
+            for _ in range(mult):
+                self.add_edge(id_replace, child_id)
+
+        # supprimer les arêtes d'entrée vers AND
+        for p in parents:
+            self.remove_edge(p, id_and)
+
+        # supprimer le nœud AND
+        self.remove_node_by_id(id_and)
+        del self.nodes[id_and]
+
+        # si ancien constant devenu isolé, on le supprime
+        if lbl == "1" and id_replace != id_const:
+            if id_const in self.get_id_node_map() and not const_node.get_children():
+                self.remove_node_by_id(id_const)
+                del self.nodes[id_const]
+
+        return id_replace
+
+    def simplify_ou_exclusive(self, id_xor: int, id_const: int) -> int:
+        """
+        Simplifie une porte OU exclusif  alimentée par une constante :
+
+        Retourne lID du nœud remplaçant (XOR, variable, NOT ou constant).
+        """
+        xor_node = self.get_node_by_id(id_xor)
+        if xor_node.get_label() != "^":
+            raise ValueError("id_xor doit être une porte ^")
+        const_node = self.get_node_by_id(id_const)
+        lbl = const_node.get_label()
+        if lbl not in {"0", "1"} or id_const not in xor_node.get_parents():
+            raise ValueError("id_const doit être un parent constant '0' ou '1'")
+        parents = list(xor_node.get_parents().keys())
+        others = [p for p in parents if p != id_const]
+        children = list(xor_node.get_children().items())
+
+        # CAS constante 0
+        if lbl == "0":
+            if len(others) > 1:
+                self.remove_edge(id_const, id_xor)
+                if not const_node.get_children():
+                    self.remove_node_by_id(id_const)
+                    del self.nodes[id_const]
+                return id_xor
+            if len(others) == 1:
+                rep = others[0]
+            else:
+                return id_const
+            for child_id, m in children:
+                for _ in range(m):
+                    self.add_edge(rep, child_id)
+            for p in parents:
+                self.remove_edge(p, id_xor)
+            self.remove_node_by_id(id_xor)
+            del self.nodes[id_xor]
+            if not const_node.get_children():
+                self.remove_node_by_id(id_const)
+                del self.nodes[id_const]
+            return rep
+
+        else :
+            self.remove_edge(id_const, id_xor)
+            id_not = self.add_node(label="~")
+            for child_id, m in children:
+                for _ in range(m):
+                    self.remove_edge(id_xor, child_id)
+                for _ in range(m):
+                    self.add_edge(id_xor, id_not)
+                    self.add_edge(id_not, child_id)
+            if not const_node.get_children():
+                self.remove_node_by_id(id_const)
+                del self.nodes[id_const]
+        return id_not
+
     
-   
+
+    def simplif_and_const(self, id_and: int, id_const: int) -> int:
+        """
+        Simplifie une porte AND qui a au moins un parent constant (0 ou 1), pour toute arité )
+
+        Arguments :
+            id_and     ID  AND
+            id_const  ID constant ("0" ou "1")
             
+            Retourne lID du nœud qui remplace AND (ou id_and si on garde la porte).
+        """
+        and_node = self.get_node_by_id(id_and)
+        if and_node.get_label() != '&':
+            return id_and 
+            
+        const_node = self.get_node_by_id(id_const)
+        const_label = const_node.get_label()
+
+        if const_label not in ('0', '1'):
+            raise ValueError(f"Le noeud {id_const} avec label {const_label} n'est pas une constante '0' ou '1'.")
+
+        parents_ids = list(and_node.get_parents().keys())
+        other_parents_ids = [p_id for p_id in parents_ids if p_id != id_const]
+
+        id_replacement_node = -1 
+
+        if const_label == '0':
+            id_replacement_node = id_const
+        elif const_label == '1':
+            if not other_parents_ids:
+                id_replacement_node = id_const
+            elif len(other_parents_ids) == 1:
+                id_replacement_node = other_parents_ids[0]
+            else:
+                self.remove_edge(id_const, id_and)
+                if not const_node.get_children() and id_const not in self.outputs:
+                    for p_id in list(const_node.get_parents().keys()):
+                        self.remove_edge(p_id, id_const)
+                    if id_const in self.nodes:
+                         del self.nodes[id_const]
+                    if id_const in self.inputs:
+                        self.inputs.remove(id_const)
+                return id_and 
+
         
+        enfantdebase = dict(and_node.get_children())
+        for child_id, mult in enfantdebase.items():
+            for _ in range(mult):
+                self.add_edge(id_replacement_node, child_id)
+
+        for p_id in list(and_node.get_parents().keys()):
+            edgeasupp = and_node.get_parents().get(p_id, 0)
+            for _ in range(edgeasupp):
+                self.remove_edge(p_id, id_and)
+
+        for enfantamaj in list(enfantdebase.keys()):
+            child_node_to_update = self.get_node_by_id(enfantamaj)
+            if child_node_to_update and id_and in child_node_to_update.get_parents():
+                originenfant= enfantdebase[enfantamaj]
+                for _ in range(originenfant):
+                    self.remove_edge(id_and, enfantamaj)
+
+        if id_and in self.nodes:
+            del self.nodes[id_and]
+        if id_and in self.inputs:
+            self.inputs.remove(id_and)
+        if id_and in self.outputs:
+            self.outputs = [id_replacement_node if o_id == id_and else o_id for o_id in self.outputs]
+
+        assup = True
+        if id_replacement_node == id_const:
+            assup = False # La constante est le noeud de remplacement, ne pas la supprimer
         
+        if assup and id_const in self.nodes:
+            node_a_verif = self.get_node_by_id(id_const)
+            if node_a_verif and not node_a_verif.get_children() and id_const not in self.outputs:
+                # Suppression manuelle de id_const
+                for p_id_of_const in list(node_a_verif.get_parents().keys()): # Devrait être vide pour une constante
+                    numarete = node_a_verif.get_parents().get(p_id_of_const, 0)
+                    for _ in range(numarete):
+                        self.remove_edge(p_id_of_const, id_const)
+                if id_const in self.nodes: # Revérifier car remove_edge peut l'avoir affecté
+                    del self.nodes[id_const]
+                if id_const in self.inputs:
+                    self.inputs.remove(id_const)
+        
+        return id_replacement_node
+    def simplif_not_const(self, id_not: int) -> int:
+        """
+        Simplifie une porte NOT dont l_parent est une constante (0 ou 1).
+
+        Retourne lID du noeud constant qui remplace la porte NOT.
+        """
+        not_node = self.get_node_by_id(id_not)
+        if not_node.get_label() != '~':
+            return id_not # Pas une porte NOT ou déjà transformée
+
+        parents_ids = list(not_node.get_parents().keys())
+        if not parents_ids:
+            # Porte NOT sans parent, ne peut pas être simplifiée ainsi
+            return id_not 
+        
+        # Une porte NOT bien formée a un seul parent
+        parent_id = parents_ids[0]
+        parent_node = self.get_node_by_id(parent_id)
+        parent_label = parent_node.get_label()
+
+        id_replacement_node = -1
+
+        if parent_label == '0':
+            not_node.set_label('1')
+            id_replacement_node = id_not 
+            self.remove_edge(parent_id, id_not)
+            # Si le parent 0 n_a plus d_enfants et n_est pas une sortie, le supprimer
+            if not parent_node.get_children() and parent_id not in self.outputs:
+                # Suppression manuelle
+                if parent_id in self.nodes:
+                    del self.nodes[parent_id]
+                if parent_id in self.inputs:
+                    self.inputs.remove(parent_id)
+
+        elif parent_label == '1':
+            not_node.set_label('0')
+            id_replacement_node = id_not
+            # Supprimer l_ancienne connexion au parent 1
+            self.remove_edge(parent_id, id_not)
+
+            if not parent_node.get_children() and parent_id not in self.outputs:
+                # Suppression manuelle
+                if parent_id in self.nodes:
+                    del self.nodes[parent_id]
+                if parent_id in self.inputs:
+                    self.inputs.remove(parent_id)
+        else:
+            # Le parent n_est pas une constante, on ne peut pas simplifier ici.
+            return id_not
         
 
+        # Ré-implémentation de simplif_not_const
+        not_node = self.get_node_by_id(id_not)
+        if not_node.get_label() != '~':
+            return id_not
+
+        parents_ids = list(not_node.get_parents().keys())
+        if not parents_ids:
+            return id_not
+        
+        parent_id = parents_ids[0]
+        parent_node = self.get_node_by_id(parent_id)
+        parent_label = parent_node.get_label()
+
+        new_const_label = ""
+        if parent_label == '0':
+            new_const_label = '1'
+        elif parent_label == '1':
+            new_const_label = '0'
+        else:
+            return id_not 
+
+        not_node.set_label(new_const_label) # id_not devient le noeud constant de remplacement
+        self.remove_edge(parent_id, id_not) 
+
+    
+        if parent_id in self.nodes: 
+            parent_node_check = self.get_node_by_id(parent_id)
+            if not parent_node_check.get_children() and parent_id not in self.outputs:
+                for p_of_parent_id in list(parent_node_check.get_parents().keys()):
+                    self.remove_edge(p_of_parent_id, parent_id)
+                # Ensuite, supprimer le noeud lui-même
+                if parent_id in self.nodes:
+                    del self.nodes[parent_id]
+                if parent_id in self.inputs: 
+                    self.inputs.remove(parent_id)
+
+        return id_not 
+
+    def simplif_xor_const(self, id_xor: int, id_const: int) -> int:
+        xor_node = self.get_node_by_id(id_xor)
+        if not xor_node or xor_node.get_label() != "^":
+            return id_xor
+
+        const_node = self.get_node_by_id(id_const)
+        if not const_node:
+             return id_xor 
+        const_label = const_node.get_label()
+        if const_label not in ("0", "1"):
+            raise ValueError(f"Le noeud {id_const} n'est pas une constante 0 ou 1.")
+
+        parents_ids = list(xor_node.get_parents().keys())
+        other_parent_ids = [p_id for p_id in parents_ids if p_id != id_const]
+
+        id_replacement_node = -1 
+        not_to_remove_id = -1    
+
+        if not other_parent_ids:
+            id_replacement_node = id_const
+        elif len(other_parent_ids) > 1:
+            return id_xor
+        else:
+            other_parent_id = other_parent_ids[0]
+            other_parent_node = self.get_node_by_id(other_parent_id)
+            if not other_parent_node:
+                return id_xor 
+
+            if const_label == "0":
+                id_replacement_node = other_parent_id
+            else: # const_label == "1"
+                if other_parent_node.get_label() == "~":
+                    grand_parents_ids = list(other_parent_node.get_parents().keys())
+                    if grand_parents_ids:
+                        id_replacement_node = grand_parents_ids[0]
+                        not_to_remove_id = other_parent_id
+                    else:
+                        pass 
+                
+                if id_replacement_node == -1:
+                    id_new_not = self.add_node(label="~")
+                    self.add_edge(other_parent_id, id_new_not)
+                    id_replacement_node = id_new_not
+        
+        if id_replacement_node == -1:
+            return id_xor
+
+        enfantori = dict(xor_node.get_children()) 
+        for child_id, mult in enfantori.items():
+            for _ in range(mult):
+                self.add_edge(id_replacement_node, child_id)
+
+        for p_id in list(xor_node.get_parents().keys()):
+            num_edges = xor_node.get_parents()[p_id]
+            for _ in range(num_edges):
+                self.remove_edge(p_id, id_xor)
+
+        for child_id in list(enfantori.keys()):
+            child_node = self.get_node_by_id(child_id)
+            if child_node and id_xor in child_node.get_parents():
+                arete_enf = enfantori[child_id]
+                for _ in range(arete_enf):
+                    self.remove_edge(id_xor, child_id)
+
+        if id_xor in self.nodes:
+            del self.nodes[id_xor]
+        if id_xor in self.inputs: self.inputs.remove(id_xor)
+        if id_xor in self.outputs:
+            self.outputs = [id_replacement_node if o_id == id_xor else o_id for o_id in self.outputs]
+
+        const_node_check = self.get_node_by_id(id_const)
+        if const_node_check and not const_node_check.get_children() and id_const not in self.outputs:
+            for p_id_of_const in list(const_node_check.get_parents().keys()):
+                num_edges_const_parent = const_node_check.get_parents().get(p_id_of_const, 0)
+                for _ in range(num_edges_const_parent):
+                    self.remove_edge(p_id_of_const, id_const)
+            if id_const in self.nodes: del self.nodes[id_const]
+            if id_const in self.inputs: self.inputs.remove(id_const)
+
+        if not_to_remove_id != -1 and not_to_remove_id in self.nodes:
+            not_node_to_remove = self.get_node_by_id(not_to_remove_id)
+            if not_node_to_remove and not not_node_to_remove.get_children() and not_to_remove_id not in self.outputs:
+                for p_of_not_id in list(not_node_to_remove.get_parents().keys()):
+                     num_edges_not_parent = not_node_to_remove.get_parents().get(p_of_not_id, 0)
+                     for _ in range(num_edges_not_parent):
+                        self.remove_edge(p_of_not_id, not_to_remove_id)
+                
+                if not_to_remove_id in self.nodes: del self.nodes[not_to_remove_id]
+                if not_to_remove_id in self.inputs: self.inputs.remove(not_to_remove_id)
+        
+        return id_replacement_node
+
+    def simplify_copy_node(self, id_copy: int) -> int:
+        """
+        Simplifie un noeud de copie (label=\"") qui a exactement un parent et un enfant.
+        La règle est Copie(X) -> X, ce qui signifie que le noeud copie est supprimé
+        et son parent est directement connecté à son enfant.
+        Si le noeud copie a plusieurs enfants, cette règle simple ne s_applique pas directement
+        de cette manière (il faudrait dupliquer le parent ou la structure en amont).
+        Cette méthode gère le cas simple 1 parent, 1 enfant pour le noeud copie.
+
+        Arguments :
+            id_copy – ID du nœud copie
+
+        Retourne l_ID du parent si la simplification a eu lieu, sinon id_copy.
+        """
+        copy_node = self.get_node_by_id(id_copy)
+        if copy_node.get_label() != "":
+            return id_copy # Pas un noeud copie
+
+        parents = list(copy_node.get_parents().keys())
+        children = list(copy_node.get_children().keys())
+
+        if len(parents) == 1 and len(children) == 1:
+            parent_id = parents[0]
+            child_id = children[0]
+            
+            # Multiplicité de l_arc parent -> copy et copy -> child
+            mult_parent_to_copy = copy_node.get_parents()[parent_id]
+            mult_copy_to_child = copy_node.get_children()[child_id]
+            
+            self.add_edge(parent_id, child_id) # Utilise la multiplicité de l_arc entrant
+
+            # Supprimer les anciennes arêtes
+            self.remove_edge(parent_id, id_copy)
+            self.remove_edge(id_copy, child_id)
+
+            # Supprimer le noeud copie manuellement
+            if id_copy in self.nodes:
+                del self.nodes[id_copy]
+            if id_copy in self.inputs: self.inputs.remove(id_copy)
+            if id_copy in self.outputs: 
+                # Si la copie était une sortie, son parent devient la sortie
+                self.outputs = [parent_id if o_id == id_copy else o_id for o_id in self.outputs]
+            
+            return parent_id # Le "flux" vient maintenant de parent_id
+        
+        return id_copy # Pas de simplification applicable
+
+
+
+    def evaluate(self, input_values: dict) -> None:
+        """
+        Évalue le circuit booléen avec les valeurs d'entrée fournies.
+        Les valeurs d'entrée sont propagées et le circuit est simplifié
+        en appliquant les règles de la Table du TD11.
+
+        Arguments:
+            input_values:Un dictionnaire où les clés sont les labels des entré et kes valeurs sont "0" ou "1".
+        """
+        for node_id in list(self.inputs): 
+            if node_id not in self.nodes: continue
+            node = self.get_node_by_id(node_id)
+            node_label = node.get_label()
+            if node_label in input_values:
+                const_value = input_values[node_label]
+                if const_value not in ('0', '1'):
+                    raise ValueError(f"Input value for {node_label} must be '0' or '1', got {const_value}")
+                node.set_label(const_value)
+
+        changed_in_overall_loop = True
+        max_iterations = len(self.nodes) * 3 + 20 
+        current_iteration = 0
+
+        while changed_in_overall_loop and current_iteration < max_iterations:
+            changed_in_overall_loop = False
+            current_iteration += 1
+            
+            node_ids_to_process = list(self.nodes.keys()) 
+            
+            for node_id in node_ids_to_process:
+                if node_id not in self.nodes: # Le noeud a pu être supprimé
+                    continue
+                
+                node = self.get_node_by_id(node_id)
+                original_node_label = node.get_label()
+                action_taken_on_node = False
+
+                if original_node_label in ("&", "|", "^", "~"):
+                    parents_before_simplif = dict(node.get_parents()) # Copie des parents
+                    
+                    const_parent_id_found = -1
+                    for p_id in parents_before_simplif.keys():
+                        if p_id not in self.nodes: continue
+                        parent_node = self.get_node_by_id(p_id)
+                        if parent_node.get_label() in ("0", "1"):
+                            const_parent_id_found = p_id
+                            break
+                    
+                    if const_parent_id_found != -1:
+                        num_nodes_before = len(self.nodes)
+                        children_before = dict(node.get_children()) if node_id in self.nodes else {}
+                        parents_before = dict(node.get_parents()) if node_id in self.nodes else {}
+
+                        if original_node_label == "&":
+                            self.simplif_and_const(node_id, const_parent_id_found)
+                            action_taken_on_node = True
+                        elif original_node_label == "|":
+                            self.simplif_or_const(node_id, const_parent_id_found)
+                            action_taken_on_node = True
+                        elif original_node_label == "^":
+                            self.simplif_xor_const(node_id, const_parent_id_found)
+                            action_taken_on_node = True
+                        
+                        if action_taken_on_node:
+                            # Vérifier si un changement a eu lieu
+                            if node_id not in self.nodes or len(self.nodes) < num_nodes_before:
+                                changed_in_overall_loop = True
+                            elif node_id in self.nodes: # Le noeud existe toujours
+                                current_node_after = self.get_node_by_id(node_id)
+                                if current_node_after.get_label() != original_node_label or \
+                                   current_node_after.get_parents() != parents_before or \
+                                   current_node_after.get_children() != children_before:
+                                    changed_in_overall_loop = True
+                            if changed_in_overall_loop: break # Sortir de la boucle for des noeuds, et refaire un etour
+
+                    elif original_node_label == "~": # Porte NOT, vérifier son unique parent
+                        if parents_before_simplif: 
+                            parent_id = list(parents_before_simplif.keys())[0]
+                            if parent_id in self.nodes:
+                                parent_node = self.get_node_by_id(parent_id)
+                                if parent_node.get_label() in ("0", "1"):
+                                    label_before = node.get_label()
+                                    self.simplif_not_const(node_id)
+                                    action_taken_on_node = True
+                                    if node_id not in self.nodes or (node_id in self.nodes and self.get_node_by_id(node_id).get_label() != label_before):
+                                        changed_in_overall_loop = True
+                                        break 
+                
+                if changed_in_overall_loop and action_taken_on_node : continue 
+
+                if node_id in self.nodes and self.get_node_by_id(node_id).get_label() == "": 
+                    node_copy = self.get_node_by_id(node_id)
+                    parents_of_copy = list(node_copy.get_parents().keys())
+                    num_nodes_before_copy_simpl = len(self.nodes)
+
+                    if parents_of_copy:
+                        parent_id = parents_of_copy[0]
+                        if parent_id in self.nodes:
+                            parent_node = self.get_node_by_id(parent_id)
+                            if parent_node.get_label() in ("0", "1"):
+                                self.simplify_copies_const(node_id, parent_id)
+                                action_taken_on_node = True
+                                if node_id not in self.nodes or len(self.nodes) < num_nodes_before_copy_simpl:
+                                    changed_in_overall_loop = True
+                                    break
+                    
+                    if changed_in_overall_loop and action_taken_on_node : continue
+
+                    if node_id in self.nodes: 
+                        old_copy_parents = dict(self.get_node_by_id(node_id).get_parents())
+                        old_copy_children = dict(self.get_node_by_id(node_id).get_children())
+                        
+                        returned_val = self.simplify_copy_node(node_id)
+                        action_taken_on_node = True 
+                        
+                        if node_id not in self.nodes:
+                            changed_in_overall_loop = True
+                            break 
+            if changed_in_overall_loop:
+                continue
+
+        if current_iteration >= max_iterations:
+            print(f"Warning: Max iterations ({max_iterations}) reached in evaluate. Circuit may not be fully simplified.")
+
+        
