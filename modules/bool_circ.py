@@ -119,7 +119,6 @@ class bool_circ(open_digraph):
         if not operateurs_unaires:
             raise IndexError("Liste des opérateurs unaires vide")
 
-        # Génération d'un DAG sans boucle
         graphe = open_digraph.empty().random(n, borne, inputs=0, outputs=0, form="loop-free DAG")
         print('Graphe initial :', graphe)
 
@@ -253,8 +252,7 @@ class bool_circ(open_digraph):
             new_ins = comp.inputs.copy()
             new_ins.pop(idxcin_high)
             comp.set_input_ids(new_ins)
-
-        
+            
             new_outs = comp.outputs.copy()
             idxclo = len(low.outputs) - 1
             new_outs.pop(idxclo)
@@ -270,15 +268,8 @@ class bool_circ(open_digraph):
         (Cin du bit de poids faible) par une constante 0.
         """
         g = cls.adder(n)
-
-        
         zero = g.get_node_by_id(g.inputs[0])
-
-        
         zero.set_label("0")
-
-
-
         return cls(g)
     
     @classmethod
@@ -291,14 +282,8 @@ class bool_circ(open_digraph):
             raise ValueError(f"Impossible dencoder {value} avec {size} bits.")
         if size < 1:
             raise ValueError(f"Impossible d’avoir une taille de registre < 1 : size = {size}")
-
-       
         g = open_digraph.empty()
-
-     
         bits = bin(value)[2:].zfill(size)  
-
-        
         for b in bits:
             const_id = g.add_node(label=b)       
             g.add_output_node(const_id)          
@@ -335,30 +320,20 @@ class bool_circ(open_digraph):
 
             elif len(others) == 1:
                 id_replace = others[0]
-
-            # CAS 4 : fan-in = 1 (OR(0)) → on remplace par 0
             else:
                 id_replace = id_const
-
-        # === À partir d’ici on supprime l’OR et on recâble ===
-
-        # 1) Recâbler toutes les sorties de OR vers id_replace
         for child_id, mult in list(or_node.get_children().items()):
             for _ in range(mult):
                 self.add_edge(id_replace, child_id)
             for _ in range(mult):
                 self.remove_edge(id_or, child_id)
-
-        # 2) Supprimer toutes les arêtes d’entrée vers OR
         for p in parents:
             self.remove_edge(p, id_or)
 
-        # 3) Supprimer le nœud OR isolé
         self.remove_node_by_id(id_or)
         del self.nodes[id_or]
 
         if lbl == "0" and id_replace != id_const:
-            # constant 0 n’est plus utilisé
             if id_const in self.get_id_node_map() and not self.get_node_by_id(id_const).get_children():
                 self.remove_node_by_id(id_const)
                 del self.nodes[id_const]
@@ -381,14 +356,11 @@ class bool_circ(open_digraph):
             raise ValueError("id_const doit être '0' ou '1'")
 
         copy = self.get_node_by_id(id_copy)
-        # pour chaque enfant et chaque multiplicité
         for child_id, mult in list(copy.get_children().items()):
             for _ in range(mult):
-                # on crée un nouveau constant et on le connecte
                 new_c = self.add_node(label=lbl)
                 self.add_edge(new_c, child_id)
 
-        # on enlève copie + ses arêtes
         self.remove_node_by_id(id_copy)
         del self.nodes[id_copy]
 
@@ -415,7 +387,6 @@ class bool_circ(open_digraph):
         if not_node.get_label() != "~":
             raise ValueError("id_not doit être une porte NON (~)")
 
-        # on vérifie que id_const est bien le parent unique de la porte
         parents = list(not_node.get_parents().keys())
         if parents != [id_const]:
             raise ValueError("id_const doit être l’unique parent de la porte NON")
@@ -424,24 +395,14 @@ class bool_circ(open_digraph):
         lbl = const_node.get_label()
         if lbl not in {"0", "1"}:
             raise ValueError("id_const doit être un nœud constant '0' ou '1'")
-
-        # inversion de la constante
         new_lbl = "1" if lbl == "0" else "0"
         id_new_const = self.add_node(label=new_lbl)
-
-        # recâbler TOUS les enfants de la porte NOT vers ce nouveau constant
         for child_id, mult in list(not_node.get_children().items()):
             for _ in range(mult):
                 self.add_edge(id_new_const, child_id)
-
-        # supprimer la porte NOT et ses arêtes
-        # on retire d’abord l’arête const→not
         self.remove_edge(id_const, id_not)
-        # puis on enlève le nœud NOT lui-même
         self.remove_node_by_id(id_not)
         del self.nodes[id_not]
-
-        # si l’ancien constant est devenu isolé, on le supprime aussi
         if not const_node.get_children():
             self.remove_node_by_id(id_const)
             del self.nodes[id_const]
@@ -469,14 +430,11 @@ class bool_circ(open_digraph):
         parents = list(and_node.get_parents().keys())
         others = [p for p in parents if p != id_const]
 
-        # CAS absorbant : présence d'un 0 → tout devient 0
         if lbl == "0":
             id_replace = id_const
 
-        # CAS neutre : 1 n'apporte rien
-        else:  # lbl == "1"
+        else: 
             if len(others) > 1:
-                # on enlève juste l'arête 1 → AND
                 self.remove_edge(id_const, id_and)
                 if not const_node.get_children():
                     self.remove_node_by_id(id_const)
@@ -484,23 +442,17 @@ class bool_circ(open_digraph):
                 return id_and
             elif len(others) == 1:
                 id_replace = others[0]
-            else:  # aucun autre parent (ET(1))
+            else: 
                 id_replace = id_const
-
-        # recâbler toutes les sorties de la porte ET vers id_replace
         for child_id, mult in list(and_node.get_children().items()):
             for _ in range(mult):
                 self.add_edge(id_replace, child_id)
-
-        # supprimer les arêtes d'entrée vers AND
         for p in parents:
             self.remove_edge(p, id_and)
 
-        # supprimer le nœud AND
         self.remove_node_by_id(id_and)
         del self.nodes[id_and]
 
-        # si ancien constant devenu isolé, on le supprime
         if lbl == "1" and id_replace != id_const:
             if id_const in self.get_id_node_map() and not const_node.get_children():
                 self.remove_node_by_id(id_const)
@@ -525,7 +477,6 @@ class bool_circ(open_digraph):
         others = [p for p in parents if p != id_const]
         children = list(xor_node.get_children().items())
 
-        # CAS constante 0
         if lbl == "0":
             if len(others) > 1:
                 self.remove_edge(id_const, id_xor)
@@ -587,16 +538,14 @@ class bool_circ(open_digraph):
 
         parents_ids = list(and_node.get_parents().keys())
         other_parents_ids = [p_id for p_id in parents_ids if p_id != id_const]
-
-        id_replacement_node = -1 
-
+        noeud_remplac = -1 
         if const_label == '0':
-            id_replacement_node = id_const
+            noeud_remplac = id_const
         elif const_label == '1':
             if not other_parents_ids:
-                id_replacement_node = id_const
+                noeud_remplac = id_const
             elif len(other_parents_ids) == 1:
-                id_replacement_node = other_parents_ids[0]
+                noeud_remplac = other_parents_ids[0]
             else:
                 self.remove_edge(id_const, id_and)
                 if not const_node.get_children() and id_const not in self.outputs:
@@ -607,12 +556,11 @@ class bool_circ(open_digraph):
                     if id_const in self.inputs:
                         self.inputs.remove(id_const)
                 return id_and 
-
-        
+            
         enfantdebase = dict(and_node.get_children())
         for child_id, mult in enfantdebase.items():
             for _ in range(mult):
-                self.add_edge(id_replacement_node, child_id)
+                self.add_edge(noeud_remplac, child_id)
 
         for p_id in list(and_node.get_parents().keys()):
             edgeasupp = and_node.get_parents().get(p_id, 0)
@@ -620,8 +568,8 @@ class bool_circ(open_digraph):
                 self.remove_edge(p_id, id_and)
 
         for enfantamaj in list(enfantdebase.keys()):
-            child_node_to_update = self.get_node_by_id(enfantamaj)
-            if child_node_to_update and id_and in child_node_to_update.get_parents():
+            noeudamaj = self.get_node_by_id(enfantamaj)
+            if noeudamaj and id_and in noeudamaj.get_parents():
                 originenfant= enfantdebase[enfantamaj]
                 for _ in range(originenfant):
                     self.remove_edge(id_and, enfantamaj)
@@ -631,26 +579,27 @@ class bool_circ(open_digraph):
         if id_and in self.inputs:
             self.inputs.remove(id_and)
         if id_and in self.outputs:
-            self.outputs = [id_replacement_node if o_id == id_and else o_id for o_id in self.outputs]
+            self.outputs = [noeud_remplac if o_id == id_and else o_id for o_id in self.outputs]
 
         assup = True
-        if id_replacement_node == id_const:
+        if noeud_remplac == id_const:
             assup = False # La constante est le noeud de remplacement, ne pas la supprimer
         
         if assup and id_const in self.nodes:
             node_a_verif = self.get_node_by_id(id_const)
             if node_a_verif and not node_a_verif.get_children() and id_const not in self.outputs:
                 # Suppression manuelle de id_const
-                for p_id_of_const in list(node_a_verif.get_parents().keys()): # Devrait être vide pour une constante
-                    numarete = node_a_verif.get_parents().get(p_id_of_const, 0)
+                for p in list(node_a_verif.get_parents().keys()): # Devrait être vide pour une constante
+                    numarete = node_a_verif.get_parents().get(p, 0)
                     for _ in range(numarete):
-                        self.remove_edge(p_id_of_const, id_const)
+                        self.remove_edge(p, id_const)
                 if id_const in self.nodes: # Revérifier car remove_edge peut l'avoir affecté
                     del self.nodes[id_const]
                 if id_const in self.inputs:
                     self.inputs.remove(id_const)
         
-        return id_replacement_node
+        return noeud_remplac
+    
     def simplif_not_const(self, id_not: int) -> int:
         """
         Simplifie une porte NOT dont l_parent est une constante (0 ou 1).
@@ -659,23 +608,21 @@ class bool_circ(open_digraph):
         """
         not_node = self.get_node_by_id(id_not)
         if not_node.get_label() != '~':
-            return id_not # Pas une porte NOT ou déjà transformée
+            return id_not 
 
         parents_ids = list(not_node.get_parents().keys())
         if not parents_ids:
-            # Porte NOT sans parent, ne peut pas être simplifiée ainsi
             return id_not 
         
-        # Une porte NOT bien formée a un seul parent
         parent_id = parents_ids[0]
         parent_node = self.get_node_by_id(parent_id)
         parent_label = parent_node.get_label()
 
-        id_replacement_node = -1
+        noeud_remplac = -1
 
         if parent_label == '0':
             not_node.set_label('1')
-            id_replacement_node = id_not 
+            noeud_remplac = id_not 
             self.remove_edge(parent_id, id_not)
             # Si le parent 0 n_a plus d_enfants et n_est pas une sortie, le supprimer
             if not parent_node.get_children() and parent_id not in self.outputs:
@@ -687,7 +634,7 @@ class bool_circ(open_digraph):
 
         elif parent_label == '1':
             not_node.set_label('0')
-            id_replacement_node = id_not
+            noeud_remplac = id_not
             # Supprimer l_ancienne connexion au parent 1
             self.remove_edge(parent_id, id_not)
 
@@ -698,11 +645,8 @@ class bool_circ(open_digraph):
                 if parent_id in self.inputs:
                     self.inputs.remove(parent_id)
         else:
-            # Le parent n_est pas une constante, on ne peut pas simplifier ici.
+            # Le parent nest pas une constante, on ne peut pas simplifier ici.
             return id_not
-        
-
-        # Ré-implémentation de simplif_not_const
         not_node = self.get_node_by_id(id_not)
         if not_node.get_label() != '~':
             return id_not
@@ -728,10 +672,10 @@ class bool_circ(open_digraph):
 
     
         if parent_id in self.nodes: 
-            parent_node_check = self.get_node_by_id(parent_id)
-            if not parent_node_check.get_children() and parent_id not in self.outputs:
-                for p_of_parent_id in list(parent_node_check.get_parents().keys()):
-                    self.remove_edge(p_of_parent_id, parent_id)
+            pearent_a_verif = self.get_node_by_id(parent_id)
+            if not pearent_a_verif.get_children() and parent_id not in self.outputs:
+                for p in list(pearent_a_verif.get_parents().keys()):
+                    self.remove_edge(p, parent_id)
                 # Ensuite, supprimer le noeud lui-même
                 if parent_id in self.nodes:
                     del self.nodes[parent_id]
@@ -753,35 +697,35 @@ class bool_circ(open_digraph):
             raise ValueError(f"Le noeud {id_const} n'est pas une constante 0 ou 1.")
 
         parents_ids = list(xor_node.get_parents().keys())
-        other_parent_ids = [p_id for p_id in parents_ids if p_id != id_const]
+        autreparent = [p_id for p_id in parents_ids if p_id != id_const]
 
         id_replacement_node = -1 
-        not_to_remove_id = -1    
+        passup = -1    
 
-        if not other_parent_ids:
+        if not autreparent:
             id_replacement_node = id_const
-        elif len(other_parent_ids) > 1:
+        elif len(autreparent) > 1:
             return id_xor
         else:
-            other_parent_id = other_parent_ids[0]
-            other_parent_node = self.get_node_by_id(other_parent_id)
-            if not other_parent_node:
+            autreparentid = autreparent[0]
+            autreparentnoeud = self.get_node_by_id(autreparentid)
+            if not autreparentnoeud:
                 return id_xor 
 
             if const_label == "0":
-                id_replacement_node = other_parent_id
+                id_replacement_node = autreparentid
             else: # const_label == "1"
-                if other_parent_node.get_label() == "~":
-                    grand_parents_ids = list(other_parent_node.get_parents().keys())
+                if autreparentnoeud.get_label() == "~":
+                    grand_parents_ids = list(autreparentnoeud.get_parents().keys())
                     if grand_parents_ids:
                         id_replacement_node = grand_parents_ids[0]
-                        not_to_remove_id = other_parent_id
+                        passup = autreparentid
                     else:
                         pass 
                 
                 if id_replacement_node == -1:
                     id_new_not = self.add_node(label="~")
-                    self.add_edge(other_parent_id, id_new_not)
+                    self.add_edge(autreparentid, id_new_not)
                     id_replacement_node = id_new_not
         
         if id_replacement_node == -1:
@@ -793,8 +737,8 @@ class bool_circ(open_digraph):
                 self.add_edge(id_replacement_node, child_id)
 
         for p_id in list(xor_node.get_parents().keys()):
-            num_edges = xor_node.get_parents()[p_id]
-            for _ in range(num_edges):
+            numarete = xor_node.get_parents()[p_id]
+            for _ in range(numarete):
                 self.remove_edge(p_id, id_xor)
 
         for child_id in list(enfantori.keys()):
@@ -810,25 +754,25 @@ class bool_circ(open_digraph):
         if id_xor in self.outputs:
             self.outputs = [id_replacement_node if o_id == id_xor else o_id for o_id in self.outputs]
 
-        const_node_check = self.get_node_by_id(id_const)
-        if const_node_check and not const_node_check.get_children() and id_const not in self.outputs:
-            for p_id_of_const in list(const_node_check.get_parents().keys()):
-                num_edges_const_parent = const_node_check.get_parents().get(p_id_of_const, 0)
-                for _ in range(num_edges_const_parent):
+        noeud_averif = self.get_node_by_id(id_const)
+        if noeud_averif and not noeud_averif.get_children() and id_const not in self.outputs:
+            for p_id_of_const in list(noeud_averif.get_parents().keys()):
+                arete_parent = noeud_averif.get_parents().get(p_id_of_const, 0)
+                for _ in range(arete_parent):
                     self.remove_edge(p_id_of_const, id_const)
             if id_const in self.nodes: del self.nodes[id_const]
             if id_const in self.inputs: self.inputs.remove(id_const)
 
-        if not_to_remove_id != -1 and not_to_remove_id in self.nodes:
-            not_node_to_remove = self.get_node_by_id(not_to_remove_id)
-            if not_node_to_remove and not not_node_to_remove.get_children() and not_to_remove_id not in self.outputs:
-                for p_of_not_id in list(not_node_to_remove.get_parents().keys()):
-                     num_edges_not_parent = not_node_to_remove.get_parents().get(p_of_not_id, 0)
-                     for _ in range(num_edges_not_parent):
-                        self.remove_edge(p_of_not_id, not_to_remove_id)
+        if passup != -1 and passup in self.nodes:
+            passupnoeud = self.get_node_by_id(passup)
+            if passupnoeud and not passupnoeud.get_children() and passup not in self.outputs:
+                for p_of_not_id in list(passupnoeud.get_parents().keys()):
+                     numaretepasparent = passupnoeud.get_parents().get(p_of_not_id, 0)
+                     for _ in range(numaretepasparent):
+                        self.remove_edge(p_of_not_id, passup)
                 
-                if not_to_remove_id in self.nodes: del self.nodes[not_to_remove_id]
-                if not_to_remove_id in self.inputs: self.inputs.remove(not_to_remove_id)
+                if passup in self.nodes: del self.nodes[passup]
+                if passup in self.inputs: self.inputs.remove(passup)
         
         return id_replacement_node
 
@@ -841,10 +785,8 @@ class bool_circ(open_digraph):
         de cette manière (il faudrait dupliquer le parent ou la structure en amont).
         Cette méthode gère le cas simple 1 parent, 1 enfant pour le noeud copie.
 
-        Arguments :
-            id_copy – ID du nœud copie
 
-        Retourne l_ID du parent si la simplification a eu lieu, sinon id_copy.
+        Retourne lid du parent si la simplification a eu lieu, sinon id_copy.
         """
         copy_node = self.get_node_by_id(id_copy)
         if copy_node.get_label() != "":
@@ -856,10 +798,6 @@ class bool_circ(open_digraph):
         if len(parents) == 1 and len(children) == 1:
             parent_id = parents[0]
             child_id = children[0]
-            
-            # Multiplicité de l_arc parent -> copy et copy -> child
-            mult_parent_to_copy = copy_node.get_parents()[parent_id]
-            mult_copy_to_child = copy_node.get_children()[child_id]
             
             self.add_edge(parent_id, child_id) # Utilise la multiplicité de l_arc entrant
 
@@ -875,8 +813,7 @@ class bool_circ(open_digraph):
                 # Si la copie était une sortie, son parent devient la sortie
                 self.outputs = [parent_id if o_id == id_copy else o_id for o_id in self.outputs]
             
-            return parent_id # Le "flux" vient maintenant de parent_id
-        
+            return parent_id 
         return id_copy # Pas de simplification applicable
 
 
@@ -896,85 +833,70 @@ class bool_circ(open_digraph):
             node_label = node.get_label()
             if node_label in input_values:
                 const_value = input_values[node_label]
-                if const_value not in ('0', '1'):
-                    raise ValueError(f"Input value for {node_label} must be '0' or '1', got {const_value}")
                 node.set_label(const_value)
-
-        changed_in_overall_loop = True
-        max_iterations = len(self.nodes) * 3 + 20 
-        current_iteration = 0
-
-        while changed_in_overall_loop and current_iteration < max_iterations:
-            changed_in_overall_loop = False
-            current_iteration += 1
-            
-            node_ids_to_process = list(self.nodes.keys()) 
-            
-            for node_id in node_ids_to_process:
+        changementrecursif = True
+        while changementrecursif:
+            changementrecursif = False
+            iddenoeud = list(self.nodes.keys()) 
+            for node_id in iddenoeud:
                 if node_id not in self.nodes: # Le noeud a pu être supprimé
                     continue
-                
                 node = self.get_node_by_id(node_id)
-                original_node_label = node.get_label()
-                action_taken_on_node = False
-
-                if original_node_label in ("&", "|", "^", "~"):
-                    parents_before_simplif = dict(node.get_parents()) # Copie des parents
-                    
-                    const_parent_id_found = -1
-                    for p_id in parents_before_simplif.keys():
+                noeuddorigine = node.get_label()
+                actionffaite = False
+                if noeuddorigine in ("&", "|", "^", "~"):
+                    parent_avant_simplif = dict(node.get_parents()) # Copie des parents
+                    parenttrouvé = -1
+                    for p_id in parent_avant_simplif.keys():
                         if p_id not in self.nodes: continue
                         parent_node = self.get_node_by_id(p_id)
                         if parent_node.get_label() in ("0", "1"):
-                            const_parent_id_found = p_id
+                            parenttrouvé = p_id
                             break
                     
-                    if const_parent_id_found != -1:
+                    if parenttrouvé != -1:
                         num_nodes_before = len(self.nodes)
                         children_before = dict(node.get_children()) if node_id in self.nodes else {}
                         parents_before = dict(node.get_parents()) if node_id in self.nodes else {}
 
-                        if original_node_label == "&":
-                            self.simplif_and_const(node_id, const_parent_id_found)
-                            action_taken_on_node = True
-                        elif original_node_label == "|":
-                            self.simplif_or_const(node_id, const_parent_id_found)
-                            action_taken_on_node = True
-                        elif original_node_label == "^":
-                            self.simplif_xor_const(node_id, const_parent_id_found)
-                            action_taken_on_node = True
+                        if noeuddorigine == "&":
+                            self.simplif_and_const(node_id, parenttrouvé)
+                            actionffaite = True
+                        elif noeuddorigine == "|":
+                            self.simplif_or_const(node_id, parenttrouvé)
+                            actionffaite = True
+                        elif noeuddorigine == "^":
+                            self.simplif_xor_const(node_id, parenttrouvé)
+                            actionffaite = True
                         
-                        if action_taken_on_node:
+                        if actionffaite:
                             # Vérifier si un changement a eu lieu
                             if node_id not in self.nodes or len(self.nodes) < num_nodes_before:
-                                changed_in_overall_loop = True
+                                changementrecursif = True
                             elif node_id in self.nodes: # Le noeud existe toujours
                                 current_node_after = self.get_node_by_id(node_id)
-                                if current_node_after.get_label() != original_node_label or \
-                                   current_node_after.get_parents() != parents_before or \
-                                   current_node_after.get_children() != children_before:
-                                    changed_in_overall_loop = True
-                            if changed_in_overall_loop: break # Sortir de la boucle for des noeuds, et refaire un etour
+                                if current_node_after.get_label() != noeuddorigine or current_node_after.get_parents() != parents_before or current_node_after.get_children() != children_before:
+                                    changementrecursif = True
+                            if changementrecursif: break # Sortir de la boucle for des noeuds, et refaire un etour
 
-                    elif original_node_label == "~": # Porte NOT, vérifier son unique parent
-                        if parents_before_simplif: 
-                            parent_id = list(parents_before_simplif.keys())[0]
+                    elif noeuddorigine == "~": # Porte NOT, vérifier son unique parent
+                        if parent_avant_simplif: 
+                            parent_id = list(parent_avant_simplif.keys())[0]
                             if parent_id in self.nodes:
                                 parent_node = self.get_node_by_id(parent_id)
                                 if parent_node.get_label() in ("0", "1"):
-                                    label_before = node.get_label()
+                                    label_avant = node.get_label()
                                     self.simplif_not_const(node_id)
-                                    action_taken_on_node = True
-                                    if node_id not in self.nodes or (node_id in self.nodes and self.get_node_by_id(node_id).get_label() != label_before):
-                                        changed_in_overall_loop = True
+                                    actionffaite = True
+                                    if node_id not in self.nodes or (node_id in self.nodes and self.get_node_by_id(node_id).get_label() != label_avant):
+                                        changementrecursif = True
                                         break 
                 
-                if changed_in_overall_loop and action_taken_on_node : continue 
-
+                if changementrecursif and actionffaite : continue 
                 if node_id in self.nodes and self.get_node_by_id(node_id).get_label() == "": 
                     node_copy = self.get_node_by_id(node_id)
                     parents_of_copy = list(node_copy.get_parents().keys())
-                    num_nodes_before_copy_simpl = len(self.nodes)
+                    noeudcopieavantsipmlif = len(self.nodes)
 
                     if parents_of_copy:
                         parent_id = parents_of_copy[0]
@@ -982,27 +904,21 @@ class bool_circ(open_digraph):
                             parent_node = self.get_node_by_id(parent_id)
                             if parent_node.get_label() in ("0", "1"):
                                 self.simplify_copies_const(node_id, parent_id)
-                                action_taken_on_node = True
-                                if node_id not in self.nodes or len(self.nodes) < num_nodes_before_copy_simpl:
-                                    changed_in_overall_loop = True
+                                actionffaite = True
+                                if node_id not in self.nodes or len(self.nodes) < noeudcopieavantsipmlif:
+                                    changementrecursif = True
                                     break
                     
-                    if changed_in_overall_loop and action_taken_on_node : continue
+                    if changementrecursif and actionffaite : continue
 
-                    if node_id in self.nodes: 
-                        old_copy_parents = dict(self.get_node_by_id(node_id).get_parents())
-                        old_copy_children = dict(self.get_node_by_id(node_id).get_children())
-                        
-                        returned_val = self.simplify_copy_node(node_id)
-                        action_taken_on_node = True 
+                    if node_id in self.nodes:
+                        valretour = self.simplify_copy_node(node_id)
+                        actionffaite = True 
                         
                         if node_id not in self.nodes:
-                            changed_in_overall_loop = True
+                            changementrecursif = True
                             break 
-            if changed_in_overall_loop:
+            if changementrecursif:
                 continue
-
-        if current_iteration >= max_iterations:
-            print(f"Warning: Max iterations ({max_iterations}) reached in evaluate. Circuit may not be fully simplified.")
 
         
