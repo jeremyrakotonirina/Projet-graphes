@@ -1,93 +1,56 @@
-# Projet Info
+# Projet Graphes – `open_digraph`
 
+Implémentation en Python d’une structure de **graphes orientés ouverts** (`open_digraph`) et de **circuits booléens** (`bool_circ`), avec diverses opérations utiles pour les TPs de théorie des graphes / logique booléenne (génération aléatoire, vérifications de forme, chemins, circuits etc.). Adapté pour être réutilisé comme petite bibliothèque pédagogique de manipulation de graphes et circuits booléens en Python.
 
+## Contenu du projet
 
-## Getting started
+- **`modules/node.py`** : définition de la classe `node`
+  - Noeud identifié par un `id`, un `label`, et ses dictionnaires de **parents** / **enfants** (avec multiplicités).
+- **`modules/open_digraph.py`** : définition de la classe principale `open_digraph`
+  - Construction de graphes ouverts (entrées, sorties, noeuds internes).
+  - Génération de graphes aléatoires (`free`, `DAG`, `oriented`, `undirected`, `loop-free`, etc.).
+  - Vérification de bonne formation (`is_well_formed`), affichage, copie, etc.
+  - Intègre plusieurs *mixins* :
+    - `GettersSetters`, `Ajout`, `Suppression`, `Image`, `CircuitsBooleens`, `Chemins`.
+- **`modules/bool_circ.py`** : classe `bool_circ(open_digraph)`
+  - Modélisation de **circuits booléens** sur un `open_digraph`.
+  - Labels supportés :
+    - `&` : ET, `|` : OU, `^` : OU exclusif, `~` : NON, `''` : copie, `0` et `1` : constantes.
+  - Vérification de bonne formation des circuits (`is_well_formed`, `is_cyclic`, etc.).
+  - Méthodes de construction :
+    - `parse_parentheses` : création d’un circuit booléen à partir d’expressions booléennes complètement parenthésées.
+    - `random_bool_circ` : génération de circuits booléens aléatoires.
+- **`modules/FonctionsMatrices.py`** : fonctions utilitaires sur les matrices
+  - Génération de matrices d’adjacence aléatoires (triangulaires, symétriques, orientées, sans boucles…).
+- **Mixins dans `modules/open_digraph_mixin/`** :
+  - `Ajout.py`, `Suppression.py`, `Image.py`, `CircuitsBooleens.py`, `Chemins.py`, `GettersSetters.py` :
+    - méthodes pour manipuler les graphes (ajout/suppression de noeuds/arêtes, calculs de chemins, opérations liées aux circuits booléens, export d’images, etc.).
+- **`tests/open_digraph_test.py`** :
+  - Batterie de tests unitaires sur les principales fonctionnalités.
+- **`worksheet.py`** :
+  - Petit script d’essais / TP (génération d’un graphe aléatoire, sauvegarde en `.dot`, relecture, affichage, etc.).
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+## Pré-requis
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+- Bibliothèques Python :
+  - `matplotlib` (utilisé via `matplotlib.colors` dans `open_digraph.py`)
+- Optionnel mais recommandé :
 
-## Add your files
-
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/ee/gitlab-basics/add-file.html#add-a-file-using-the-command-line) or push an existing Git repository with the following command:
-
-```
-cd existing_repo
-git remote add origin https://gitlab.com/j_mz/projet_info.git
-git branch -M main
-git push -uf origin main
-```
-
-## Integrate with your tools
-
-- [ ] [Set up project integrations](https://gitlab.com/j_mz/projet_info/-/settings/integrations)
-
-## Collaborate with your team
-
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Set auto-merge](https://docs.gitlab.com/ee/user/project/merge_requests/merge_when_pipeline_succeeds.html)
-
-## Test and Deploy
-
-Use the built-in continuous integration in GitLab.
-
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/index.html)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
-
-***
-
-# Editing this README
-
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
-
-## Suggestions for a good README
-
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
-
-## Name
-Choose a self-explaining name for your project.
-
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
-
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
-
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
-
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
-
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
-
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
-
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
-
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
-
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
-
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
-
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
-
-## License
-For open source projects, say how it is licensed.
-
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+##Structure
+Projet-graphes-main/
+└── Projet-graphes-main/
+    ├── modules/
+    │   ├── node.py
+    │   ├── open_digraph.py
+    │   ├── bool_circ.py
+    │   ├── FonctionsMatrices.py
+    │   └── open_digraph_mixin/
+    │       ├── Ajout.py
+    │       ├── Suppression.py
+    │       ├── Image.py
+    │       ├── CircuitsBooleens.py
+    │       └── Chemins.py
+    ├── tests/
+    │   └── open_digraph_test.py
+    ├── worksheet.py
+    └── README.md
