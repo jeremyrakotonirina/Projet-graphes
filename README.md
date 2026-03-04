@@ -27,8 +27,7 @@ Implémentation en Python d’une structure de **graphes orientés ouverts** (`o
     - méthodes pour manipuler les graphes (ajout/suppression de noeuds/arêtes, calculs de chemins, opérations liées aux circuits booléens, export d’images, etc.).
 - **`tests/open_digraph_test.py`** :
   - Batterie de tests unitaires sur les principales fonctionnalités.
-- **`worksheet.py`** :
-  - Petit script d’essais / TP (génération d’un graphe aléatoire, relecture, affichage, etc.).
+
 
 ## Pré-requis
 
