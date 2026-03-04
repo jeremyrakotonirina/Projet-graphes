@@ -28,29 +28,10 @@ Implémentation en Python d’une structure de **graphes orientés ouverts** (`o
 - **`tests/open_digraph_test.py`** :
   - Batterie de tests unitaires sur les principales fonctionnalités.
 - **`worksheet.py`** :
-  - Petit script d’essais / TP (génération d’un graphe aléatoire, sauvegarde en `.dot`, relecture, affichage, etc.).
+  - Petit script d’essais / TP (génération d’un graphe aléatoire, relecture, affichage, etc.).
 
 ## Pré-requis
 
 - Bibliothèques Python :
   - `matplotlib` (utilisé via `matplotlib.colors` dans `open_digraph.py`)
-- Optionnel mais recommandé :
 
-##Structure
-Projet-graphes-main/
-└── Projet-graphes-main/
-    ├── modules/
-    │   ├── node.py
-    │   ├── open_digraph.py
-    │   ├── bool_circ.py
-    │   ├── FonctionsMatrices.py
-    │   └── open_digraph_mixin/
-    │       ├── Ajout.py
-    │       ├── Suppression.py
-    │       ├── Image.py
-    │       ├── CircuitsBooleens.py
-    │       └── Chemins.py
-    ├── tests/
-    │   └── open_digraph_test.py
-    ├── worksheet.py
-    └── README.md
